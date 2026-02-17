@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  background: transparent !important;
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", "Liberation Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  background: transparent !important;
+  color: #0f172a;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  user-select: none;
+}
+
+.window {
+  height: 100%;
+  width: 100%;
+  background: transparent;
+}
+
+.app-shell {
+  height: 100%;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border-radius: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .app-shell {
+    background: rgba(30, 30, 32, 0.55);
+  }
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .card {
+    background: rgba(40, 40, 44, 0.92);
+  }
+}
+
+.dark .card {
+  background: rgba(40, 40, 44, 0.92);
+}
+
+.topbar {
+  -webkit-app-region: drag;
+}
+
+button,
+input,
+select {
+  -webkit-app-region: no-drag;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.context-item {
+  width: 100%;
+  border-radius: 6px;
+  padding: 8px;
+  text-align: left;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #0f172a;
+  cursor: pointer;
+  margin-top: -3px;
+}
+
+input[type='range']::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: #0f172a;
+  cursor: pointer;
+}
+
+input[type='range']::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+}

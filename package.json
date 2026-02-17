@@ -1,0 +1,14 @@
+{
+  "name": "mac-image-optimizer",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w apps/desktop",
+    "build": "npm run build -w apps/desktop",
+    "test": "npm run test -w apps/desktop",
+    "package": "npm run dist -w apps/desktop"
+  }
+}

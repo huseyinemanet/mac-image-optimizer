@@ -1,0 +1,9 @@
+node_modules
+.DS_Store
+dist
+dist-electron
+coverage
+*.log
+apps/desktop/dist
+apps/desktop/dist-electron
+apps/desktop/release
