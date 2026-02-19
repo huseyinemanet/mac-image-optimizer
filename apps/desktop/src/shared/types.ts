@@ -145,22 +145,22 @@ export interface WorkerTask {
 
 export type WorkerResponse =
   | {
-      ok: true;
-      inputPath: string;
-      originalBytes: number;
-      actions: {
-        optimised?: ActionResult;
-        webp?: ActionResult;
-      };
-      backups: BackupRecord[];
-      status: 'success' | 'skipped';
-      message?: string;
-    }
-  | {
-      ok: false;
-      inputPath: string;
-      message: string;
+    ok: true;
+    inputPath: string;
+    originalBytes: number;
+    actions: {
+      optimised?: ActionResult;
+      webp?: ActionResult;
     };
+    backups: BackupRecord[];
+    status: 'success' | 'skipped';
+    message?: string;
+  }
+  | {
+    ok: false;
+    inputPath: string;
+    message: string;
+  };
 
 declare global {
   interface Window {
@@ -186,6 +186,13 @@ declare global {
       revealInFileManager: (paths: string[]) => Promise<void>;
       openPath: (path: string) => Promise<void>;
       copyToClipboard: (text: string) => Promise<void>;
+      notify: (title: string, body?: string, silent?: boolean) => Promise<void>;
+      showRowContextMenu: (paths: string[]) => void;
+      onRemoveItems: (cb: (paths: string[]) => void) => () => void;
+      onActionOptimize: (cb: (paths: string[]) => void) => () => void;
+      onActionConvert: (cb: (paths: string[]) => void) => () => void;
+      onActionReveal: (cb: (paths: string[]) => void) => () => void;
+      onLog?: (cb: (payload: { level: string; context: string; message: string; args: any[] }) => void) => () => void;
     };
   }
 }

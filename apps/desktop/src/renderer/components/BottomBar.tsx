@@ -1,4 +1,3 @@
-import { Menu } from '@headlessui/react';
 import type { RunMode } from '@/shared/types';
 
 interface BottomBarProps {
@@ -18,7 +17,7 @@ interface BottomBarProps {
 const modeLabel: Record<RunMode, string> = {
   optimize: 'Optimize',
   optimizeAndWebp: 'Optimize + WebP',
-  convertWebp: 'Convert to WebP'
+  convertWebp: 'WebP'
 };
 
 export function BottomBar({
@@ -35,56 +34,99 @@ export function BottomBar({
   onCancel
 }: BottomBarProps): JSX.Element {
   return (
-    <footer className="card flex items-center justify-between rounded-xl px-3 py-2">
-      <div className="text-sm text-slate-700">{summaryLine}</div>
-
-      <div className="flex min-w-[340px] items-center justify-center gap-2">
-        {busy ? (
-          <>
-            {done > 0 || savedPercent > 0 ? <div className="text-xs text-slate-600">Saved {savedText} ({savedPercent}%)</div> : null}
-            <div className="h-2 w-44 overflow-hidden rounded-full bg-slate-200">
-              <div className="h-full bg-slate-800 transition-all" style={{ width: `${progressPercent}%` }} />
-            </div>
-            <button
-              type="button"
-              onClick={onCancel}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-800 hover:bg-slate-50"
-            >
-              Cancel
-            </button>
-          </>
-        ) : null}
+    <footer className="bottom-sticky-bar">
+      {/* Left Column: Summary Info */}
+      <div className="flex-1 min-w-0 pr-4">
+        <div className="text-[13px] truncate" style={{ color: 'var(--macos-secondary)' }}>
+          {summaryLine}
+        </div>
       </div>
 
+      {/* Right Column: Actions */}
       <div className="flex items-center gap-2">
-        <Menu as="div" className="relative">
-          <Menu.Button className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
-            Mode ▾
-          </Menu.Button>
-          <Menu.Items className="absolute right-0 top-9 z-20 w-44 rounded-lg border border-slate-200 bg-white p-1 shadow-lg focus:outline-none">
-            {(Object.keys(modeLabel) as RunMode[]).map((item) => (
-              <Menu.Item key={item}>
-                {({ active }) => (
-                  <button
-                    type="button"
-                    onClick={() => onModeChange(item)}
-                    className={`w-full rounded-md px-2 py-1.5 text-left text-sm ${active ? 'bg-slate-100' : ''}`}
-                  >
-                    {modeLabel[item]} {item === mode ? '✓' : ''}
-                  </button>
-                )}
-              </Menu.Item>
-            ))}
-          </Menu.Items>
-        </Menu>
+        <select
+          className="macos-select-mode"
+          value={mode}
+          onChange={(e) => onModeChange(e.target.value as RunMode)}
+          disabled={busy}
+        >
+          {(Object.keys(modeLabel) as RunMode[]).map((item) => (
+            <option key={item} value={item}>
+              {modeLabel[item]}
+            </option>
+          ))}
+        </select>
 
         <button
           type="button"
           onClick={onRun}
           disabled={!canRun || busy}
-          className="rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+          className="macos-btn-optimize"
         >
-          {mode === 'convertWebp' ? 'Convert to WebP' : 'Optimize'}
+          {/* SVG code stays the same */}
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <g clipPath="url(#clip0_8_265)">
+              <mask id="mask0_8_265" style={{ maskType: 'luminance' }} maskUnits="userSpaceOnUse" x="0" y="0" width="18" height="18">
+                <path d="M18 0H0V18H18V0Z" fill="white" />
+                <path d="M7.99821 1.96444C8.41566 1.14615 9.58461 1.14611 10.0021 1.96444L11.6302 5.15634C11.797 5.48311 12.1129 5.70805 12.4762 5.75912L16.0563 6.2623C16.9906 6.39362 17.3579 7.5478 16.6715 8.19513L14.1293 10.5924C13.8535 10.8525 13.7276 11.2343 13.7938 11.6075L14.4003 15.0279C14.5624 15.9419 13.6105 16.6475 12.7831 16.2269L9.50991 14.5635C9.18951 14.4007 8.81076 14.4007 8.49036 14.5635L5.21718 16.2269C4.3897 16.6476 3.43788 15.942 3.6 15.0279L4.20644 11.6075C4.27265 11.2342 4.14607 10.8525 3.87027 10.5924L1.32875 8.19513C0.642376 7.5478 1.0097 6.39362 1.94399 6.2623L5.52407 5.75912C5.88727 5.70801 6.20261 5.48306 6.36929 5.15634L7.99821 1.96444Z" fill="black" />
+              </mask>
+              <g mask="url(#mask0_8_265)">
+                <path d="M15.2381 6.14649C15.0268 6.66173 14.6562 7.20756 14.1936 7.749C13.2471 8.85683 11.7984 10.0854 10.0766 11.1936C8.355 12.3017 6.63705 13.112 5.23682 13.5146C4.73905 13.6578 4.25901 13.7546 3.82031 13.7893L4.09497 12.2424C4.31128 12.2045 4.55448 12.1495 4.82227 12.0725C6.04661 11.7204 7.63103 10.9841 9.26513 9.9324C10.8995 8.88045 12.2264 7.74353 13.054 6.7749C13.3246 6.45817 13.3246 13.3246 13.6729 5.92676L15.2381 6.14649Z" fill="url(#paint0_linear_8_265)" />
+              </g>
+              <mask id="mask1_8_265" style={{ maskType: 'luminance' }} maskUnits="userSpaceOnUse" x="0" y="1" width="18" height="16">
+                <path d="M7.99821 1.96444C8.41566 1.14615 9.58461 1.14611 10.0021 1.96444L11.6302 5.15634C11.797 5.48311 12.1129 5.70805 12.4762 5.75912L16.0563 6.2623C16.9906 6.39362 17.3579 7.5478 16.6715 8.19513L14.1293 10.5924C13.8535 10.8525 13.7276 11.2343 13.7938 11.6075L14.4003 15.0279C14.5624 15.9419 13.6105 16.6475 12.7831 16.2269L9.50991 14.5635C9.18951 14.4007 8.81076 14.4007 8.49036 14.5635L5.21718 16.2269C4.3897 16.6476 3.43788 15.942 3.6 15.0279L4.20644 11.6075C4.27265 11.2342 4.14607 10.8525 3.87027 10.5924L1.32875 8.19513C0.642376 7.5478 1.0097 6.39362 1.94399 6.2623L5.52407 5.75912C5.88727 5.70801 6.20261 5.48306 6.36929 5.15634L7.99821 1.96444Z" fill="white" />
+              </mask>
+              <g mask="url(#mask1_8_265)">
+                <g filter="url(#filter0_f_8_265)">
+                  <path d="M15.2381 6.14649C15.0268 6.66173 14.6562 7.20756 14.1936 7.749C13.2471 8.85683 11.7984 10.0854 10.0766 11.1936C8.355 12.3017 6.63705 13.112 5.23682 13.5146C4.73905 13.6578 4.25901 13.7546 3.82031 13.7893L4.09497 12.2424C4.31128 12.2045 4.55448 12.1495 4.82227 12.0725C6.04661 11.7204 7.63103 10.9841 9.26513 9.9324C10.8995 8.88045 12.2264 7.74353 13.054 6.7749C13.3246 6.45817 13.3246 13.3246 13.6729 5.92676L15.2381 6.14649Z" fill="url(#paint1_linear_8_265)" />
+                </g>
+              </g>
+              <path d="M7.99821 1.96444C8.41566 1.14615 9.58461 1.14611 10.0021 1.96444L11.6302 5.15634C11.797 5.48311 12.1129 5.70805 12.4762 5.75912L16.0563 6.2623C16.9906 6.39362 17.3579 7.5478 16.6715 8.19513L14.1293 10.5924C13.8535 10.8525 13.7276 11.2343 13.7938 11.6075L14.4003 15.0279C14.5624 15.9419 13.6105 16.6475 12.7831 16.2269L9.50991 14.5635C9.18951 14.4007 8.81076 14.4007 8.49036 14.5635L5.21718 16.2269C4.3897 16.6476 3.43788 15.942 3.6 15.0279L4.20644 11.6075C4.27265 11.2342 4.14607 10.8525 3.87027 10.5924L1.32875 8.19513C0.642376 7.5478 1.0097 6.39362 1.94399 6.2623L5.52407 5.75912C5.88727 5.70801 6.20261 5.48306 6.36929 5.15634L7.99821 1.96444Z" fill="url(#paint2_linear_8_265)" />
+              <path d="M7.99808 1.96435C8.41553 1.14608 9.58448 1.14608 10.002 1.96435L11.6309 5.15625C11.7976 5.483 12.1129 5.70795 12.4761 5.75903L16.0562 6.26221C16.9905 6.39354 17.3579 7.54779 16.6715 8.19504L14.1293 10.5923C13.8535 10.8524 13.7276 11.2342 13.7938 11.6075L14.4002 15.0278C14.5573 15.9133 13.6687 16.6037 12.8606 16.2635L12.783 16.2275L9.50978 14.5635C9.18938 14.4006 8.81063 14.4006 8.49023 14.5635L5.21702 16.2275L5.13938 16.2635C4.35738 16.5927 3.49943 15.9568 3.58736 15.1128L3.59981 15.0278L4.20626 11.6075C4.26419 11.2808 4.17476 10.9479 3.96676 10.6955L3.87081 10.5923L1.32855 8.19504C0.663528 7.56789 0.987533 6.46507 1.8581 6.27759L1.94379 6.26221L5.52391 5.75903C5.88714 5.70794 6.20243 5.48299 6.36913 5.15625L7.99808 1.96435ZM9.501 2.21996C9.29228 1.81083 8.7078 1.81083 8.499 2.21996L6.87011 5.41186C6.62007 5.902 6.14714 6.23978 5.60228 6.3164L2.02216 6.81958C1.55501 6.88525 1.37135 7.46199 1.71454 7.78561L4.25681 10.1828C4.6705 10.5731 4.8593 11.1457 4.75998 11.7056L4.15353 15.126C4.07249 15.5829 4.54842 15.936 4.96214 15.7259L8.23538 14.0618C8.7159 13.8176 9.28418 13.8176 9.7647 14.0618L13.0379 15.7259C13.4516 15.936 13.9276 15.5829 13.8465 15.126L13.2401 11.7056C13.1408 11.1457 13.3295 10.5731 13.7432 10.1828L16.2855 7.78561C16.6287 7.46199 16.445 6.88525 15.9779 6.81958L12.3977 6.3164C11.8529 6.23978 11.38 5.902 11.1299 5.41186L9.501 2.21996Z" fill="url(#paint3_linear_8_265)" />
+              <path d="M4.55486 2.16618L4.08243 0.975757C3.96299 0.674775 3.53702 0.674738 3.41752 0.975705L2.94483 2.16618C2.93963 2.17922 2.92933 2.18954 2.91629 2.19473L1.72568 2.66753C1.42477 2.78703 1.42478 3.21297 1.72569 3.33247L2.91629 3.80527C2.92933 3.81047 2.93963 3.82078 2.94483 3.83382L3.41751 5.02429C3.53702 5.32526 3.96298 5.32522 4.08243 5.02424L4.55486 3.83382C4.56006 3.82073 4.5705 3.81046 4.5836 3.80527L5.7743 3.33247C6.07523 3.21298 6.07523 2.78701 5.7743 2.66753L4.5836 2.19473C4.5705 2.18954 4.56006 2.17928 4.55486 2.16618Z" fill="url(#paint4_linear_8_265)" />
+              <path d="M17.625 12.1875C17.625 12.7053 17.2053 13.125 16.6875 13.125C16.1697 13.125 15.75 12.7053 15.75 12.1875C15.75 11.6697 16.1697 11.25 16.6875 11.25C17.2053 11.25 17.625 11.6697 17.625 12.1875Z" fill="url(#paint5_linear_8_265)" />
+              <path d="M13.673 3.67308C14.2117 3.6978 14.8458 3.86281 15.2045 4.42015L15.2661 4.52562C15.5484 5.05749 15.438 5.65384 15.25 6.12303C15.2467 6.13119 15.2423 6.13902 15.2389 6.1472L13.6745 5.92747C13.7527 5.79465 13.814 5.67372 13.8576 5.56493C13.9335 5.37559 13.9385 5.27627 13.936 5.23607C13.9003 5.21712 13.8081 5.18099 13.6049 5.17161C13.2711 5.15632 12.787 5.22423 12.1701 5.40159C10.9457 5.7537 9.3615 6.48991 7.72725 7.5417C6.09289 8.59365 4.76602 9.7305 3.93843 10.6992C3.52144 11.1873 3.26006 11.5997 3.13569 11.9099C3.05982 12.0992 3.05484 12.1985 3.05733 12.2387C3.09312 12.2577 3.18568 12.2939 3.38911 12.3032C3.5771 12.3118 3.81234 12.2932 4.09224 12.2446L3.81758 13.79C3.64503 13.8035 3.47871 13.809 3.32027 13.8017C2.78163 13.7771 2.1475 13.6119 1.78878 13.0547C1.43023 12.4974 1.54281 11.8523 1.74336 11.3518C1.95282 10.8293 2.32881 10.2752 2.79879 9.7251C3.74529 8.61728 5.19393 7.38872 6.91573 6.2805C8.63745 5.17237 10.3553 4.36213 11.7556 3.95946C12.4508 3.75957 13.1108 3.64734 13.673 3.67308Z" fill="url(#paint6_linear_8_265)" />
+            </g>
+            <defs>
+              <filter id="filter0_f_8_265" x="0.820312" y="2.92676" width="17.4177" height="13.8625" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
+                <feFlood floodOpacity="0" result="BackgroundImageFix" />
+                <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape" />
+                <feGaussianBlur stdDeviation="1.5" result="effect1_foregroundBlur_8_265" />
+              </filter>
+              <linearGradient id="paint0_linear_8_265" x1="9.5295" y1="5.9265" x2="9.5295" y2="13.7895" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#575757" />
+                <stop offset="1" stopColor="#151515" />
+              </linearGradient>
+              <linearGradient id="paint1_linear_8_265" x1="9.5295" y1="5.9265" x2="9.5295" y2="13.7895" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#575757" />
+                <stop offset="1" stopColor="#151515" />
+              </linearGradient>
+              <linearGradient id="paint2_linear_8_265" x1="9.00006" y1="1.35078" x2="9.00006" y2="16.3515" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#E3E3E5" stopOpacity="0.6" />
+                <stop offset="1" stopColor="#BBBBC0" stopOpacity="0.6" />
+              </linearGradient>
+              <linearGradient id="paint3_linear_8_265" x1="9" y1="1.35076" x2="9" y2="10.038" gradientUnits="userSpaceOnUse">
+                <stop stopColor="white" />
+                <stop offset="1" stopColor="white" stopOpacity="0" />
+              </linearGradient>
+              <linearGradient id="paint4_linear_8_265" x1="3.75" y1="0.75" x2="3.75" y2="5.25" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#575757" />
+                <stop offset="1" stopColor="#151515" />
+              </linearGradient>
+              <linearGradient id="paint5_linear_8_265" x1="16.6875" y1="11.25" x2="16.6875" y2="13.125" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#575757" />
+                <stop offset="1" stopColor="#151515" />
+              </linearGradient>
+              <linearGradient id="paint6_linear_8_265" x1="8.49675" y1="3.66975" x2="8.49675" y2="13.8053" gradientUnits="userSpaceOnUse">
+                <stop stopColor="#575757" />
+                <stop offset="1" stopColor="#151515" />
+              </linearGradient>
+              <clipPath id="clip0_8_265">
+                <rect width="18" height="18" fill="white" />
+              </clipPath>
+            </defs>
+          </svg>
+          <span className="ml-1">{mode === 'convertWebp' ? 'Convert' : 'Optimize'}</span>
         </button>
       </div>
     </footer>

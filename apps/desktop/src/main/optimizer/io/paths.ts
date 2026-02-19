@@ -10,7 +10,11 @@ export interface BackupRecord {
 
 export function tempFilePath(targetPath: string): string {
   const tempDir = path.join(path.dirname(targetPath), '.optimise-tmp');
-  const tempName = `${Date.now()}-${Math.random().toString(16).slice(2)}-${path.basename(targetPath)}.tmp`;
+  const ext = path.extname(targetPath);
+  const baseName = path.basename(targetPath, ext);
+  // macOS filename limit is 255 bytes; keep the name short to avoid ENAMETOOLONG
+  const truncatedBase = baseName.length > 80 ? baseName.slice(0, 80) : baseName;
+  const tempName = `${Date.now()}-${Math.random().toString(16).slice(2)}-${truncatedBase}${ext}.tmp`;
   return path.join(tempDir, tempName);
 }
 

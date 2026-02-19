@@ -1,21 +1,18 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { app, BrowserWindow, clipboard, dialog, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, shell, Menu, MenuItem, Notification } from 'electron';
 import type {
-  ActionResult,
   BackupRecord,
-  FileStatus,
   OptimiseSettings,
-  RunMode,
-  RunProgressEvent,
-  RunSummary,
-  StartRunPayload,
-  WorkerTask
+  StartRunPayload
 } from '../shared/types';
-import { resolveInputPaths, scanImageList } from './fileScanner';
-import { getAutoConcurrency, WorkerPool } from './optimizer/workerPool';
+import { scanImageList } from './fileScanner';
+import { executeRun, cancelRun } from './services/runService';
 import { WatchFolderService } from './watch/watcher';
 import { ClipboardWatcherService } from './clipboardWatcher';
+import { Logger } from './logger';
+
+const log = new Logger('Main');
 
 interface LastRunState {
   runId: string;
@@ -24,23 +21,7 @@ interface LastRunState {
   logPath: string;
 }
 
-interface RunLogEntry {
-  originalPath: string;
-  originalBytes: number;
-  actions: {
-    optimised?: ActionResult;
-    webp?: ActionResult;
-  };
-  status: 'success' | 'skipped' | 'failed';
-  reason?: string;
-}
-
-interface RunControl {
-  cancelled: boolean;
-}
-
 let mainWindow: BrowserWindow | null = null;
-const activeRuns = new Map<string, RunControl>();
 let watchService: WatchFolderService | null = null;
 let clipboardWatcher: ClipboardWatcherService | null = null;
 
@@ -54,255 +35,12 @@ function getLastRunFilePath(): string {
   return path.join(app.getPath('userData'), 'last-run.json');
 }
 
-function getCommonBaseDir(paths: string[]): string {
-  if (paths.length === 0) {
-    return app.getPath('documents');
-  }
-
-  const resolved = paths.map((item) => path.resolve(item));
-  let common = path.dirname(resolved[0]);
-
-  for (let i = 1; i < resolved.length; i += 1) {
-    const current = path.dirname(resolved[i]);
-    while (!current.startsWith(common) && common.length > path.parse(common).root.length) {
-      common = path.dirname(common);
-    }
-  }
-
-  return common;
-}
-
-async function writeJson(filePath: string, payload: unknown): Promise<void> {
+async function writeLastRunState(state: LastRunState): Promise<void> {
+  const filePath = getLastRunFilePath();
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf-8');
+  await fs.writeFile(filePath, JSON.stringify(state, null, 2), 'utf-8');
 }
 
-function emitProgress(event: RunProgressEvent): void {
-  mainWindow?.webContents.send('run:progress', event);
-}
-
-function inferFileStatus(mode: RunMode, actions: { optimised?: ActionResult; webp?: ActionResult }): FileStatus {
-  const primary = mode === 'convertWebp' ? actions.webp : mode === 'optimize' ? actions.optimised : actions.webp ?? actions.optimised;
-  if (!primary) {
-    return 'Skipped';
-  }
-
-  if (primary.status === 'failed') {
-    return 'Failed';
-  }
-
-  if (primary.status === 'skipped') {
-    return 'Skipped';
-  }
-  return 'Done';
-}
-
-function actionForMode(mode: RunMode, actions: { optimised?: ActionResult; webp?: ActionResult }): ActionResult | undefined {
-  if (mode === 'optimize') {
-    return actions.optimised;
-  }
-  if (mode === 'convertWebp') {
-    return actions.webp;
-  }
-  return actions.webp ?? actions.optimised;
-}
-
-async function executeRun(runId: string, payload: StartRunPayload): Promise<void> {
-  const control = activeRuns.get(runId);
-  if (!control) {
-    return;
-  }
-
-  const settings = payload.settings;
-  const start = Date.now();
-  const resolved = await resolveInputPaths(payload.paths);
-  const total = resolved.length;
-
-  const commonRoot = getCommonBaseDir(resolved);
-  const backupDir = settings.outputMode === 'replace' ? path.join(commonRoot, 'Originals Backup', runId) : undefined;
-  const logPath = path.join(commonRoot, '.optimise-logs', runId, 'optimise-log.json');
-
-  if (backupDir) {
-    await fs.mkdir(backupDir, { recursive: true });
-  }
-
-  const concurrency = settings.concurrencyMode === 'auto' ? getAutoConcurrency() : Math.max(1, settings.concurrencyValue);
-  const pool = new WorkerPool(concurrency);
-
-  let index = 0;
-  let done = 0;
-  let skipped = 0;
-  let failed = 0;
-  let converted = 0;
-  let totalOriginalBytes = 0;
-  let totalOutputBytes = 0;
-  let savedBytes = 0;
-
-  const failures: Array<{ path: string; message: string }> = [];
-  const backupRecords: BackupRecord[] = [];
-  const logEntries: RunLogEntry[] = [];
-
-  const sendFileProgress = (
-    filePath: string,
-    status: FileStatus,
-    beforeBytes: number,
-    afterBytes: number,
-    message?: string
-  ) => {
-    emitProgress({
-      runId,
-      overall: {
-        total,
-        done,
-        failed,
-        skipped,
-        savedBytes,
-        elapsedMs: Date.now() - start
-      },
-      file: {
-        path: filePath,
-        status,
-        beforeBytes,
-        afterBytes,
-        savedBytes: beforeBytes - afterBytes,
-        message
-      }
-    });
-  };
-
-  try {
-    const workers = Array.from({ length: concurrency }, async () => {
-      while (true) {
-        if (control.cancelled) {
-          break;
-        }
-
-        if (index >= resolved.length) {
-          break;
-        }
-
-        const nextPath = resolved[index];
-        index += 1;
-
-        sendFileProgress(nextPath, 'Processing', 0, 0, 'Processing');
-
-        const task: WorkerTask = {
-          inputPath: nextPath,
-          settings,
-          backupDir,
-          commonRoot,
-          mode: payload.mode
-        };
-
-        const response = await pool.run(task);
-        done += 1;
-
-        if (!response.ok) {
-          failed += 1;
-          failures.push({ path: response.inputPath, message: response.message });
-          logEntries.push({
-            originalPath: response.inputPath,
-            originalBytes: 0,
-            actions: {},
-            status: 'failed',
-            reason: response.message
-          });
-          sendFileProgress(response.inputPath, 'Failed', 0, 0, 'Processing failed');
-          continue;
-        }
-
-        backupRecords.push(...response.backups);
-
-        const relevantAction = actionForMode(payload.mode, response.actions);
-        if (response.actions.webp?.status === 'success') {
-          converted += 1;
-        }
-
-        const originalBytes = relevantAction?.originalBytes ?? response.originalBytes;
-        const outputBytes = relevantAction?.outputBytes ?? response.originalBytes;
-        const bytesSaved = Math.max(0, originalBytes - outputBytes);
-
-        totalOriginalBytes += originalBytes;
-        totalOutputBytes += outputBytes;
-        savedBytes += bytesSaved;
-
-        const status = inferFileStatus(payload.mode, response.actions);
-        if (status === 'Skipped' || status === 'Cancelled') {
-          skipped += 1;
-        }
-
-        logEntries.push({
-          originalPath: response.inputPath,
-          originalBytes: response.originalBytes,
-          actions: response.actions,
-          status: response.status,
-          reason: relevantAction?.reason
-        });
-
-        sendFileProgress(response.inputPath, status, originalBytes, outputBytes, relevantAction?.reason);
-      }
-    });
-
-    await Promise.all(workers);
-
-    if (control.cancelled && index < resolved.length) {
-      while (index < resolved.length) {
-        const cancelledPath = resolved[index];
-        index += 1;
-        done += 1;
-        skipped += 1;
-        sendFileProgress(cancelledPath, 'Cancelled', 0, 0, 'Cancelled by user');
-      }
-    }
-  } finally {
-    await pool.close();
-  }
-
-  const summary: RunSummary = {
-    runId,
-    totalFiles: total,
-    processedFiles: done,
-    convertedFiles: converted,
-    skippedFiles: skipped,
-    failedFiles: failed,
-    totalOriginalBytes,
-    totalOutputBytes,
-    totalSavedBytes: Math.max(0, totalOriginalBytes - totalOutputBytes),
-    elapsedMs: Date.now() - start,
-    logPath,
-    failures
-  };
-
-  await writeJson(logPath, {
-    runId,
-    mode: payload.mode,
-    settings,
-    startedAt: new Date(start).toISOString(),
-    finishedAt: new Date().toISOString(),
-    cancelled: control.cancelled,
-    summary,
-    entries: logEntries
-  });
-
-  await writeJson(getLastRunFilePath(), { runId, backupDir, backupRecords, logPath } satisfies LastRunState);
-
-  emitProgress({
-    runId,
-    overall: {
-      total,
-      done,
-      failed,
-      skipped,
-      savedBytes: summary.totalSavedBytes,
-      elapsedMs: summary.elapsedMs
-    },
-    finished: true,
-    cancelled: control.cancelled,
-    summary
-  });
-
-  activeRuns.delete(runId);
-}
 
 async function restoreLastRun(): Promise<{ restoredCount: number; failedCount: number; message: string }> {
   try {
@@ -393,6 +131,10 @@ function createWindow(): void {
 app.whenReady().then(async () => {
   createWindow();
 
+  Logger.setListener((level, context, message, ...args) => {
+    mainWindow?.webContents.send('app:log', { level, context, message, args });
+  });
+
   watchService = new WatchFolderService(
     app.getPath('userData'),
     (payload) => {
@@ -422,11 +164,7 @@ app.whenReady().then(async () => {
   });
 });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
+// macOS: app stays alive when all windows are closed (reopens via 'activate')
 
 app.on('before-quit', async () => {
   if (watchService) {
@@ -455,35 +193,29 @@ ipcMain.handle('dialog:select-files', async () => {
 ipcMain.handle('scan:paths', async (_event, paths: string[]) => scanImageList(paths));
 
 ipcMain.handle('run:start', async (_event, payload: StartRunPayload) => {
+  log.info(`IPC: run:start received (paths: ${payload.paths.length})`);
   watchService?.updateRunPreferences(payload.settings, payload.mode);
   clipboardWatcher?.configure(Boolean(payload.settings.optimizeClipboardImages), payload.settings);
   const runId = createTimestamp();
-  activeRuns.set(runId, { cancelled: false });
-  void executeRun(runId, payload);
+  void executeRun(runId, payload, mainWindow, writeLastRunState);
   return { runId };
 });
 
 ipcMain.handle('optimize:start', async (_event, payload: StartRunPayload) => {
+  log.info(`IPC: optimize:start received (paths: ${payload.paths.length})`);
   watchService?.updateRunPreferences(payload.settings, payload.mode);
   clipboardWatcher?.configure(Boolean(payload.settings.optimizeClipboardImages), payload.settings);
   const runId = createTimestamp();
-  activeRuns.set(runId, { cancelled: false });
-  void executeRun(runId, payload);
+  void executeRun(runId, payload, mainWindow, writeLastRunState);
   return { runId };
 });
 
 ipcMain.handle('run:cancel', async (_event, runId: string) => {
-  const active = activeRuns.get(runId);
-  if (active) {
-    active.cancelled = true;
-  }
+  cancelRun(runId);
 });
 
 ipcMain.handle('optimize:cancel', async (_event, runId: string) => {
-  const active = activeRuns.get(runId);
-  if (active) {
-    active.cancelled = true;
-  }
+  cancelRun(runId);
 });
 
 ipcMain.handle('optimise:restore-last', async () => restoreLastRun());
@@ -520,4 +252,50 @@ ipcMain.handle('watch:remove-folder', async (_event, folderPath: string) => {
 
 ipcMain.handle('watch:list-folders', async () => {
   return watchService?.listFolders() ?? [];
+});
+
+ipcMain.handle('notification:show', (_event, payload: { title: string; body?: string; silent?: boolean }) => {
+  const notification = new Notification({
+    title: payload.title,
+    body: payload.body,
+    silent: payload.silent
+  });
+  notification.show();
+});
+ipcMain.on('menu:row-context', (_event, paths: string[]) => {
+  const menu = new Menu();
+
+  menu.append(new MenuItem({
+    label: 'Optimize Selected',
+    click: () => {
+      mainWindow?.webContents.send('menu:action-optimize', paths);
+    }
+  }));
+
+  menu.append(new MenuItem({
+    label: 'Convert to WebP',
+    click: () => {
+      mainWindow?.webContents.send('menu:action-convert', paths);
+    }
+  }));
+
+  menu.append(new MenuItem({ type: 'separator' }));
+
+  menu.append(new MenuItem({
+    label: 'Reveal in Finder',
+    click: () => {
+      for (const target of paths) {
+        shell.showItemInFolder(target);
+      }
+    }
+  }));
+
+  menu.append(new MenuItem({
+    label: 'Remove from List',
+    click: () => {
+      mainWindow?.webContents.send('menu:remove-items', paths);
+    }
+  }));
+
+  menu.popup({ window: mainWindow! });
 });

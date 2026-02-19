@@ -33,7 +33,7 @@ Implementation used:
 Actions:
 - Optimize selected
 - Convert to WebP (selected)
-- Reveal in Finder/Explorer
+- Reveal in Finder
 - Remove from list
 
 ## Toast Implementation
@@ -68,7 +68,7 @@ npm run dev
 npm run build
 ```
 
-## Package (Windows + macOS)
+## Package (macOS)
 
 ```bash
 npm run package

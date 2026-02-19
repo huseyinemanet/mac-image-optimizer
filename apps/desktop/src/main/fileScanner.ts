@@ -4,7 +4,7 @@ import sharp from 'sharp';
 import type { ImageListItem } from '../shared/types';
 import { isSupportedImagePath } from './optimizer/optimiser';
 
-const IGNORE_DIRS = new Set(['node_modules', '.git', '.optimise-backup', '.optimise-tmp']);
+const IGNORE_DIRS = new Set(['node_modules', '.git', '.optimise-backup', '.optimise-tmp', 'Optimized', 'Originals Backup', '.optimise-logs']);
 const IGNORE_FILES = new Set(['.DS_Store']);
 
 async function walkDir(root: string, output: string[]): Promise<void> {

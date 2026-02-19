@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react';
+import { useState, useRef, useEffect, useCallback, type MouseEvent } from 'react';
 import type { FileStatus } from '@/shared/types';
 
 export interface FileTableRow {
@@ -15,84 +15,204 @@ export interface FileTableRow {
 interface FileTableProps {
   rows: FileTableRow[];
   selected: Set<string>;
-  onSelect: (path: string, event: MouseEvent<HTMLTableRowElement>) => void;
-  onContextMenu: (path: string, event: MouseEvent<HTMLTableRowElement>) => void;
+  onSelect: (path: string, event: MouseEvent<HTMLDivElement>) => void;
+  onContextMenu: (path: string, event: MouseEvent<HTMLDivElement>) => void;
+  setSelected: (selected: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
   showDropHint: boolean;
 }
 
-function statusClass(row: FileTableRow): string {
-  if (row.status === 'Done' && typeof row.percentSaved === 'number' && row.percentSaved > 0) {
-    return 'status-chip bg-emerald-100 text-emerald-700';
-  }
+function statusBadge(row: FileTableRow): JSX.Element {
+  let badgeLabel = '';
+  let badgeBg = 'var(--macos-green)';
   if (row.status === 'Processing') {
-    return 'status-chip bg-slate-100 text-slate-600';
-  }
-  if (row.status === 'Skipped') {
-    return 'status-chip bg-amber-50 text-amber-700';
-  }
-  if (row.status === 'Failed') {
-    return 'status-chip bg-rose-50 text-rose-700';
-  }
-  return 'status-chip bg-slate-100 text-slate-600';
-}
-
-function statusLabel(row: FileTableRow): string {
-  if (row.status === 'Processing') {
-    return 'Processing...';
-  }
-
-  if (row.status === 'Done') {
+    badgeLabel = 'Ready';
+    badgeBg = 'var(--macos-green)';
+  } else if (row.status === 'Done') {
     if (typeof row.percentSaved === 'number' && row.percentSaved > 0) {
-      return `Saved ${row.percentSaved}%`;
+      badgeLabel = `\u2212${row.percentSaved}%`;
+      badgeBg = 'var(--macos-green)';
+    } else {
+      badgeLabel = 'Ready';
+      badgeBg = 'var(--macos-green)';
     }
-    return 'Done';
+  } else if (row.status === 'Skipped') {
+    badgeLabel = 'Skip';
+    badgeBg = 'var(--macos-orange)';
+  } else if (row.status === 'Failed') {
+    badgeLabel = 'Error';
+    badgeBg = 'var(--macos-red)';
+  } else {
+    badgeLabel = row.status;
+    badgeBg = 'var(--macos-green)';
   }
 
-  if (row.status === 'Skipped') {
-    if ((row.reason ?? '').toLowerCase().includes('larger')) {
-      return 'Skipped (larger)';
-    }
-    return 'Skipped';
-  }
-
-  return row.status;
+  return (
+    <div className="badge-status" style={{ background: badgeBg }} title={row.reason}>
+      <span className="label-row label-center" style={{ color: '#FFFFFF' }}>{badgeLabel}</span>
+    </div>
+  );
 }
 
-export function FileTable({ rows, selected, onSelect, onContextMenu, showDropHint }: FileTableProps): JSX.Element {
+export function FileTable({ rows, selected, onSelect, onContextMenu, setSelected, showDropHint }: FileTableProps): JSX.Element {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [lasso, setLasso] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const startPos = useRef<{ x: number; y: number } | null>(null);
+  const selectionAtStart = useRef<Set<string>>(new Set());
+  const isLassoActive = useRef(false);
+  const lassoOccurred = useRef(false);
+
+  const handleMouseMove = useCallback((e: globalThis.MouseEvent) => {
+    if (!startPos.current) return;
+
+    const dx = e.clientX - startPos.current.x;
+    const dy = e.clientY - startPos.current.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (!isLassoActive.current && distance < 5) return;
+    isLassoActive.current = true;
+    lassoOccurred.current = true;
+
+    const x = Math.min(e.clientX, startPos.current.x);
+    const y = Math.min(e.clientY, startPos.current.y);
+    const w = Math.abs(e.clientX - startPos.current.x);
+    const h = Math.abs(e.clientY - startPos.current.y);
+
+    setLasso({ x, y, w, h });
+
+    // Calculate intersections
+    if (containerRef.current) {
+      const rowElements = containerRef.current.querySelectorAll('.tr-row');
+      const intersecting = new Set<string>();
+
+      rowElements.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        const path = el.getAttribute('data-path');
+        if (!path) return;
+
+        const intersects =
+          x < rect.right &&
+          x + w > rect.left &&
+          y < rect.bottom &&
+          y + h > rect.top;
+
+        if (intersects) {
+          intersecting.add(path);
+        }
+      });
+
+      setSelected(() => {
+        const next = new Set(selectionAtStart.current);
+        intersecting.forEach(p => next.add(p));
+        return next;
+      });
+    }
+  }, [setSelected]);
+
+  const handleMouseUp = useCallback(() => {
+    startPos.current = null;
+    isLassoActive.current = false;
+    setLasso(null);
+    window.removeEventListener('mousemove', handleMouseMove);
+    window.removeEventListener('mouseup', handleMouseUp);
+  }, [handleMouseMove]);
+
+  const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+
+    const isTargetHeader = (e.target as HTMLElement).closest('.tr-header');
+    if (isTargetHeader) return;
+
+    selectionAtStart.current = new Set(e.metaKey || e.shiftKey ? selected : []);
+    startPos.current = { x: e.clientX, y: e.clientY };
+    lassoOccurred.current = false;
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
+  useEffect(() => {
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [handleMouseMove, handleMouseUp]);
+
   return (
-    <div className="relative h-full overflow-auto">
-      <table className="w-full border-collapse text-sm">
-        <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-sm">
-          <tr className="border-b border-slate-200/80 text-left text-xs text-slate-500">
-            <th className="px-3 py-2">Name</th>
-            <th className="px-3 py-2">Type</th>
-            <th className="px-3 py-2">Size</th>
-            <th className="px-3 py-2">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr
+    <div
+      ref={containerRef}
+      className="files-table-container select-none"
+      onMouseDown={handleMouseDown}
+    >
+      {lasso && (
+        <div
+          className="selection-lasso"
+          style={{
+            left: lasso.x,
+            top: lasso.y,
+            width: lasso.w,
+            height: lasso.h
+          }}
+        />
+      )}
+      {/* Header Row */}
+      <div className="tr-header">
+        <div className="td-cell td-name">
+          <span className="label-header">Name</span>
+        </div>
+        <div className="td-cell td-type">
+          <span className="label-header label-center">Type</span>
+        </div>
+        <div className="td-cell td-size">
+          <span className="label-header label-center">Size</span>
+        </div>
+        <div className="td-cell td-fixed">
+          <span className="label-header label-center">Status</span>
+        </div>
+      </div>
+
+      {/* Rows */}
+      <div className="flex-1 overflow-y-auto mt-1 space-y-[1px] min-h-0">
+        {rows.map((row) => {
+          const isSelected = selected.has(row.path);
+          return (
+            <div
               key={row.id}
-              onClick={(event) => onSelect(row.path, event)}
+              data-id={row.id}
+              data-path={row.path}
+              onClick={(event) => {
+                if (lassoOccurred.current) return;
+                onSelect(row.path, event);
+              }}
               onContextMenu={(event) => onContextMenu(row.path, event)}
-              className={`cursor-default border-b border-slate-100/80 ${selected.has(row.path) ? 'bg-blue-50' : 'odd:bg-slate-50/40 hover:bg-slate-50'}`}
+              className="tr-row cursor-default"
+              style={{
+                background: isSelected ? 'var(--macos-selection)' : 'transparent'
+              }}
             >
-              <td className="max-w-[560px] truncate px-3 py-2" title={row.path}>
-                {row.name}
-              </td>
-              <td className="px-3 py-2">{row.type.toUpperCase()}</td>
-              <td className="px-3 py-2">{row.sizeText}</td>
-              <td className="px-3 py-2">
-                <span className={statusClass(row)} title={row.reason || row.status}>
-                  {statusLabel(row)}
+              <div className="td-cell td-name">
+                <span className="label-row" style={{ color: isSelected ? 'var(--macos-accent)' : 'var(--macos-text)' }}>
+                  {row.name}
                 </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {showDropHint ? <div className="sticky bottom-0 px-3 py-2 text-xs text-slate-400">Tip: drop more files here to add them</div> : null}
+              </div>
+              <div className="td-cell td-type">
+                <span className="label-row label-center">{row.type.toUpperCase()}</span>
+              </div>
+              <div className="td-cell td-size">
+                <span className="label-row label-center">{row.sizeText}</span>
+              </div>
+              <div className="td-cell td-fixed justify-center">
+                {statusBadge(row)}
+              </div>
+            </div>
+          );
+        })}
+
+        {showDropHint && rows.length > 0 && (
+          <div className="px-3 py-2 text-[11px] text-zinc-400 italic">
+            Tip: drop more files here to add them
+          </div>
+        )}
+      </div>
     </div>
   );
 }

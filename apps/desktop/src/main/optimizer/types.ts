@@ -24,6 +24,7 @@ export interface EffectiveSettings {
   webpQuality: number;
   webpNearLossless: boolean;
   webpEffort: number;
+  qualityGuardrailSsim: boolean;
 }
 
 export interface CandidateResult {
@@ -76,6 +77,7 @@ export function toEffectiveSettings(settings: OptimiseSettings, runMode: RunMode
     webpQualityMode: (settings as OptimiseSettings & { webpQualityMode?: 'auto' | 'fixed' }).webpQualityMode ?? 'auto',
     webpQuality,
     webpNearLossless: settings.webpNearLossless,
-    webpEffort: Math.max(4, Math.min(6, settings.webpEffort || 5))
+    webpEffort: Math.max(4, Math.min(6, settings.webpEffort || 5)),
+    qualityGuardrailSsim: settings.qualityGuardrailSsim
   };
 }

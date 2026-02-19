@@ -1,4 +1,7 @@
-import { ensureParentDir, resolveToolPath, runTool } from './common';
+import { ensureParentDir, resolveToolPath, runTool, ToolError } from './common';
+import { Logger } from '../../logger';
+
+const log = new Logger('Pngquant');
 
 interface PngquantOptions {
   minQuality: number;
@@ -27,5 +30,15 @@ export async function runPngquant(inputPath: string, outputPath: string, options
 
   args.push(inputPath);
 
-  await runTool(pngquant, args);
+  try {
+    await runTool(pngquant, args);
+  } catch (error) {
+    // pngquant exit code 99 = --skip-if-larger determined output is larger than input.
+    // This is expected behaviour, not a real error.
+    if (error instanceof ToolError && error.exitCode === 99) {
+      log.info(`Pngquant skipped (output would be larger): ${inputPath}`);
+      throw new Error('Pngquant skipped: output would be larger than input');
+    }
+    throw error;
+  }
 }

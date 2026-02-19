@@ -63,5 +63,43 @@ contextBridge.exposeInMainWorld('api', {
   canRestoreLastRun: () => ipcRenderer.invoke('optimise:can-restore-last') as Promise<boolean>,
   revealInFileManager: (paths: string[]) => ipcRenderer.invoke('file:reveal', paths) as Promise<void>,
   openPath: (path: string) => ipcRenderer.invoke('file:open', path) as Promise<void>,
-  copyToClipboard: (text: string) => ipcRenderer.invoke('clipboard:write', text) as Promise<void>
+  copyToClipboard: (text: string) => ipcRenderer.invoke('clipboard:write', text) as Promise<void>,
+  notify: (title: string, body?: string, silent?: boolean) =>
+    ipcRenderer.invoke('notification:show', { title, body, silent }) as Promise<void>,
+  onLog: (cb: (payload: { level: string; context: string; message: string; args: any[] }) => void) => {
+    const listener = (_event: unknown, payload: { level: string; context: string; message: string; args: any[] }) => cb(payload);
+    ipcRenderer.on('app:log', listener);
+    return () => {
+      ipcRenderer.removeListener('app:log', listener);
+    };
+  },
+  showRowContextMenu: (paths: string[]) => ipcRenderer.send('menu:row-context', paths),
+  onRemoveItems: (cb: (paths: string[]) => void) => {
+    const listener = (_event: unknown, paths: string[]) => cb(paths);
+    ipcRenderer.on('menu:remove-items', listener);
+    return () => {
+      ipcRenderer.removeListener('menu:remove-items', listener);
+    };
+  },
+  onActionOptimize: (cb: (paths: string[]) => void) => {
+    const listener = (_event: unknown, paths: string[]) => cb(paths);
+    ipcRenderer.on('menu:action-optimize', listener);
+    return () => {
+      ipcRenderer.removeListener('menu:action-optimize', listener);
+    };
+  },
+  onActionConvert: (cb: (paths: string[]) => void) => {
+    const listener = (_event: unknown, paths: string[]) => cb(paths);
+    ipcRenderer.on('menu:action-convert', listener);
+    return () => {
+      ipcRenderer.removeListener('menu:action-convert', listener);
+    };
+  },
+  onActionReveal: (cb: (paths: string[]) => void) => {
+    const listener = (_event: unknown, paths: string[]) => cb(paths);
+    ipcRenderer.on('menu:action-reveal', listener);
+    return () => {
+      ipcRenderer.removeListener('menu:action-reveal', listener);
+    };
+  }
 });

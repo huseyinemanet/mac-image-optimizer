@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
+import { Logger } from '../logger';
 import type { WorkerTask } from '../../shared/types';
 import {
   getJpegQualities,
@@ -22,6 +23,8 @@ import { ensureBackup, outputPathForOriginal, outputPathForWebp, tempFilePath, t
 import { resolveOutputPathFromTemplate } from './io/filenameTemplate';
 import { applyExportPreset } from './exportPreset';
 import { toEffectiveSettings, type ActionDecision, type CandidateResult, type EffectiveSettings, type PipelineFileResult } from './types';
+
+const log = new Logger('Pipeline');
 
 interface CandidateFile {
   path: string;
@@ -98,6 +101,7 @@ async function buildJpegCandidates(inputPath: string, originalBuffer: Buffer, se
   const candidates: CandidateResult[] = [];
 
   for (const quality of getJpegQualities(settings)) {
+    log.debug(`Attempting Mozjpeg for ${inputPath} at quality ${quality}`);
     const out = path.join(os.tmpdir(), `mo-${Date.now()}-${Math.random().toString(16).slice(2)}.jpg`);
     try {
       await encodeMozjpeg(inputPath, out, { quality, keepMetadata: settings.keepMetadata });
@@ -109,8 +113,13 @@ async function buildJpegCandidates(inputPath: string, originalBuffer: Buffer, se
       if (accepted) {
         candidates.push(accepted);
       }
-    } catch {
-      // ignore failed candidate and continue
+    } catch (error) {
+      // If it's a missing binary error, we want to know
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('Missing optimizer binary')) {
+        throw error; // Re-throw to be caught by the action caller
+      }
+      // ignore other failed candidates (e.g. timeout) and continue
     } finally {
       await cleanupFile(out);
     }
@@ -125,6 +134,7 @@ async function buildPngCandidates(inputPath: string, originalBuffer: Buffer, set
 
   const losslessOut = path.join(os.tmpdir(), `ox-${Date.now()}-${Math.random().toString(16).slice(2)}.png`);
   try {
+    log.debug(`Attempting Oxipng lossless for ${inputPath}`);
     await runOxipng(inputPath, losslessOut, { keepMetadata: settings.keepMetadata });
     const result = await evaluateCandidate(
       { path: losslessOut, format: 'png', label: 'oxipng-lossless', needsSsim: false },
@@ -134,8 +144,11 @@ async function buildPngCandidates(inputPath: string, originalBuffer: Buffer, set
     if (result) {
       candidates.push(result);
     }
-  } catch {
-    // ignore
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes('Missing optimizer binary')) {
+      throw error;
+    }
   } finally {
     await cleanupFile(losslessOut);
   }
@@ -145,6 +158,7 @@ async function buildPngCandidates(inputPath: string, originalBuffer: Buffer, set
     const finalOut = path.join(os.tmpdir(), `pqox-${Date.now()}-${Math.random().toString(16).slice(2)}.png`);
 
     try {
+      log.debug(`Attempting Pngquant for ${inputPath} at range ${range.label}`);
       await runPngquant(inputPath, quantOut, {
         minQuality: range.min,
         maxQuality: range.max,
@@ -159,7 +173,11 @@ async function buildPngCandidates(inputPath: string, originalBuffer: Buffer, set
       if (result) {
         candidates.push(result);
       }
-    } catch {
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('Missing optimizer binary')) {
+        throw error;
+      }
       // ignore a bad pngquant candidate
     } finally {
       await cleanupFile(quantOut);
@@ -175,6 +193,7 @@ async function buildWebpCandidates(inputPath: string, originalBuffer: Buffer, se
   const candidates: CandidateResult[] = [];
 
   for (const quality of getWebpQualities(settings)) {
+    log.debug(`Attempting Cwebp for ${inputPath} at quality ${quality}`);
     const out = path.join(os.tmpdir(), `wp-${Date.now()}-${Math.random().toString(16).slice(2)}.webp`);
     try {
       await encodeCwebp(inputPath, out, {
@@ -191,7 +210,11 @@ async function buildWebpCandidates(inputPath: string, originalBuffer: Buffer, se
       if (result) {
         candidates.push(result);
       }
-    } catch {
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('Missing optimizer binary')) {
+        throw error;
+      }
       // ignore failed candidate
     } finally {
       await cleanupFile(out);
@@ -202,6 +225,7 @@ async function buildWebpCandidates(inputPath: string, originalBuffer: Buffer, se
 }
 
 function skipDecision(originalBytes: number, reason: string): ActionDecision {
+  log.info(`Skip decision: ${reason}`);
   return {
     status: 'skipped',
     reason,
@@ -225,14 +249,19 @@ async function runOptimizeAction(
     return skipDecision(originalBuffer.length, 'Skipped (unsupported)');
   }
 
-  const candidates =
-    type === 'jpeg'
-      ? await buildJpegCandidates(inputPath, originalBuffer, settings)
-      : type === 'png'
-        ? await buildPngCandidates(inputPath, originalBuffer, settings)
-        : settings.reencodeExistingWebp
-          ? await buildWebpCandidates(inputPath, originalBuffer, settings)
-          : [];
+  let candidates: CandidateResult[] = [];
+  try {
+    candidates =
+      type === 'jpeg'
+        ? await buildJpegCandidates(inputPath, originalBuffer, settings)
+        : type === 'png'
+          ? await buildPngCandidates(inputPath, originalBuffer, settings)
+          : settings.reencodeExistingWebp
+            ? await buildWebpCandidates(inputPath, originalBuffer, settings)
+            : [];
+  } catch (error) {
+    return skipDecision(originalBuffer.length, error instanceof Error ? error.message : String(error));
+  }
 
   if (type === 'webp' && !settings.reencodeExistingWebp) {
     return skipDecision(originalBuffer.length, 'Skipped existing WebP');
@@ -305,7 +334,12 @@ async function runWebpAction(
     return skipDecision(originalBuffer.length, 'Skipped existing WebP');
   }
 
-  const candidates = await buildWebpCandidates(inputPath, originalBuffer, settings);
+  let candidates: CandidateResult[] = [];
+  try {
+    candidates = await buildWebpCandidates(inputPath, originalBuffer, settings);
+  } catch (error) {
+    return skipDecision(originalBuffer.length, error instanceof Error ? error.message : String(error));
+  }
   const best = await pickBest(candidates);
 
   if (!best) {
@@ -366,6 +400,7 @@ async function runWebpAction(
 }
 
 export async function processFile(task: WorkerTask): Promise<PipelineFileResult> {
+  log.info(`Processing file: ${task.inputPath} (Mode: ${task.mode})`);
   const settings = toEffectiveSettings(task.settings, task.mode);
   const originalBuffer = await fs.readFile(task.inputPath);
 
@@ -400,6 +435,8 @@ export async function processFile(task: WorkerTask): Promise<PipelineFileResult>
   }
 
   const hasSuccess = Object.values(actions).some((action) => action?.status === 'success');
+
+  log.info(`Finished processing ${task.inputPath}. Status: ${hasSuccess ? 'success' : 'skipped'}`);
 
   return {
     inputPath: task.inputPath,

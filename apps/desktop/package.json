@@ -57,11 +57,6 @@
         "dmg"
       ],
       "category": "public.app-category.graphics-design"
-    },
-    "win": {
-      "target": [
-        "nsis"
-      ]
     }
   }
 }

@@ -8,6 +8,9 @@ import {
 } from './types';
 
 export function getSsimThreshold(settings: EffectiveSettings): number {
+  if (!settings.qualityGuardrailSsim) {
+    return 0; // Bypass: everything is accepted
+  }
   return settings.aggressivePng ? SSIM_THRESHOLD_AGGRESSIVE : SSIM_THRESHOLD_NORMAL;
 }
 

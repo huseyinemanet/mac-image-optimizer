@@ -1,6 +1,7 @@
 import os from 'node:os';
 import path from 'node:path';
 import { Worker } from 'node:worker_threads';
+import { Logger } from '../logger';
 import type { WorkerResponse, WorkerTask } from '../../shared/types';
 
 interface QueuedJob {
@@ -32,7 +33,15 @@ export class WorkerPool {
       const worker = new Worker(workerPath);
       const state: WorkerState = { worker, busy: false };
 
-      worker.on('message', (result: WorkerResponse) => {
+      worker.on('message', (msg: any) => {
+        if (msg && msg.type === 'worker:log') {
+          const { level, context, message, args } = msg.payload;
+          const workerLogger = new Logger(`Worker:${context}`);
+          (workerLogger as any)[level]?.(message, ...args);
+          return;
+        }
+
+        const result = msg as WorkerResponse;
         if (!state.current) {
           return;
         }
