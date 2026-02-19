@@ -53,7 +53,7 @@ export class WorkerPool {
         this.pump();
       });
 
-      worker.on('error', (error) => {
+      worker.on('error', (error: Error) => {
         if (state.current) {
           state.current.reject(error);
           state.current = undefined;

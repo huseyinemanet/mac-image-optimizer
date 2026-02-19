@@ -1,98 +1,139 @@
-# Image Optimizer (Local-Only Desktop App)
+# Mac Image Optimizer
 
-TinyPNG-like Electron desktop app that optimizes JPG/JPEG/PNG/WebP files **100% locally**.
-No uploads, no cloud calls.
+A blazing-fast, **100 % local** image optimizer for macOS — no uploads, no cloud, no subscriptions. Built with Electron and designed to feel native.
 
-## Renderer UI Stack
+---
 
-- **Headless UI** (`@headlessui/react`) for interactive primitives
-- **Tailwind CSS** for styling
-- **react-hot-toast** for toasts
+## ✨ Features
 
-## Minimal Single-Screen Flow
+- **Optimize JPG / JPEG / PNG / WebP** — multi-tool candidate pipeline picks the smallest output automatically
+- **Convert to WebP** — one-click batch conversion with configurable quality & presets
+- **SSIM quality guard** — ensures visual fidelity stays above your threshold (default 0.99)
+- **Watch Folders** — drop images into watched directories for hands-free optimization
+- **Clipboard auto-optimize** — copies pasted/screenshot images and optimizes them on the fly
+- **Multi-threaded worker pool** — automatically scales across CPU cores for parallel processing
+- **Drag & drop or file picker** — add files / folders effortlessly
+- **Native macOS context menu** — Optimize, Convert to WebP, Reveal in Finder, Remove from list
+- **Native macOS notifications** — completion summaries and error alerts
+- **Restore last run** — one-click undo with automatic backups
+- **macOS-native UI** — custom sidebar, settings dialog with tabbed panels, dark mode support
 
-1. Click **Add…** and choose **Folder…** or **Files…** (or drag & drop).
-2. Click one primary button (**Optimize** or **Convert to WebP**, based on mode).
-3. Watch progress in the bottom bar and completion toast.
+## 🖥 Screenshots
 
-## Layout
+<!-- Add screenshot here -->
 
-- **Top bar**: Add… menu, Settings gear, conditional Restore
-- **Main**: Drop zone (empty) or compact table list
-- **Bottom bar**: summary, run-only progress + cancel, mode dropdown, single primary action
+## 🛠 Tech Stack
 
-## Right-Click Context Menu Implementation
+| Layer | Technology |
+|---|---|
+| Framework | Electron 40 |
+| Frontend | React 19, TypeScript 5.9 |
+| Styling | Tailwind CSS 4.2, Headless UI |
+| Bundler | Vite 7 |
+| Image Processing | sharp, cjpeg (MozJPEG), pngquant, oxipng, cwebp |
+| Quality Metric | SSIM.js |
+| File Watching | chokidar |
+| Testing | Vitest 4 |
+| Packaging | electron-builder |
 
-Headless UI does not provide a native context menu component.
-Implementation used:
-- Capture native `onContextMenu` event on row (`preventDefault`) and store cursor position.
-- Render a lightweight fixed-position menu at cursor coordinates.
-- Menu items are built with **Headless UI `Menu`** for keyboard navigation semantics.
-- Close behavior: click outside or `Esc`.
+## 📁 Project Structure
 
-Actions:
-- Optimize selected
-- Convert to WebP (selected)
-- Reveal in Finder
-- Remove from list
+```
+mac-image-optimizer/
+├── apps/desktop/                   # Electron desktop application
+│   ├── src/
+│   │   ├── main/                   # Main process
+│   │   │   ├── main.ts             # App entry, IPC handlers, window management
+│   │   │   ├── preload.ts          # Context bridge API
+│   │   │   ├── optimizer/          # Optimization pipeline
+│   │   │   │   ├── pipeline.ts     # Multi-candidate optimization engine
+│   │   │   │   ├── workerPool.ts   # Thread pool for parallel processing
+│   │   │   │   └── tools/          # Bundled native binaries (cjpeg, pngquant, oxipng, cwebp)
+│   │   │   ├── services/           # Business logic services
+│   │   │   ├── watch/              # Watch folder service
+│   │   │   └── clipboardWatcher.ts # Clipboard auto-optimize
+│   │   ├── renderer/               # React renderer
+│   │   │   ├── App.tsx             # Main application component
+│   │   │   ├── components/         # UI components (Sidebar, FileTable, BottomBar, etc.)
+│   │   │   ├── hooks/              # Custom React hooks
+│   │   │   └── index.css           # Tailwind styles
+│   │   └── shared/                 # Shared types between main & renderer
+│   └── resources/                  # Bundled native binaries & libraries
+├── docs/
+├── scripts/
+└── package.json                    # Workspace root
+```
 
-## Toast Implementation
+## ⚙️ Settings
 
-Using **react-hot-toast** in `ToastHost`:
-- Success: saved bytes/percent + elapsed time
-- Issues/errors: brief message + optional `View report` action
+Settings are grouped into three tabs:
 
-## Safety Defaults
+### General
+- **Output mode** — Optimized subfolder (default) or Replace originals (with auto-backup)
+- **Skip if larger** — Discards optimized files that end up bigger than the original
+- **Preserve metadata** — Keeps EXIF and other metadata during optimization
+- **Concurrency** — Auto (CPU-based) or manual thread count
 
-- Output mode default: **Optimized subfolder**
-- Skip-if-larger default: **ON** (`Allow larger outputs` OFF)
-- Metadata default: **OFF**
-- Replace mode creates backups under `.optimise-backup/YYYY-MM-DD_HH-mm-ss/`
-- Writes use: temp file -> validate (sharp metadata) -> atomic rename
+### Optimization
+- **JPEG quality range** — min/max quality for MozJPEG candidates
+- **PNG optimization level** — oxipng compression level
+- **SSIM threshold** — minimum structural similarity score (0.90–1.00)
 
-## Setup
+### WebP
+- **Quality** — WebP encoding quality (1–100)
+- **Export preset** — Illustration, Photo, Drawing, etc.
+- **Lossless mode** — toggle lossless WebP output
+- **Near-lossless** — visually lossless at smaller file sizes
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- **macOS** (Apple Silicon or Intel)
+- **Node.js** ≥ 22.12 (recommended)
+- **npm** ≥ 10
+
+### Install
 
 ```bash
 npm install
 ```
 
-## Development
+### Development
 
 ```bash
 npm run dev
 ```
 
-## Build
+This starts the TypeScript compiler, Vite dev server, and Electron concurrently.
+
+### Build
 
 ```bash
 npm run build
 ```
 
-## Package (macOS)
+### Package (DMG)
 
 ```bash
 npm run package
 ```
 
-Installer outputs are in `apps/desktop/release/`.
+Output is in `apps/desktop/release/`.
 
-## IPC (unchanged core contract)
+## 🔒 Safety Defaults
 
-Preload exposes:
-- `selectFolder()`
-- `selectFiles()`
-- `scanPaths(paths)`
-- `startRun(payload)`
-- `cancelRun(runId)`
-- `restoreLastRun()`
-- `canRestoreLastRun()`
-- `onProgress(cb)`
-- `revealInFileManager(paths)`
-- `openPath(path)`
-- `copyToClipboard(text)`
+- **Output mode** defaults to **Optimized subfolder** — originals are never touched
+- **Skip-if-larger** is **ON** — prevents files from growing after optimization
+- **Replace mode** creates timestamped backups under `.optimise-backup/`
+- All writes use **temp file → validate → atomic rename** to prevent corruption
 
-## Troubleshooting
+## 🧪 Testing
 
-- No files loaded: check extension and folder permissions.
-- Files skipped: likely `skip-if-larger` safety rule.
-- Large folders: keep concurrency on Auto for best stability.
+```bash
+npm run test
+```
+
+## 📄 License
+
+MIT
