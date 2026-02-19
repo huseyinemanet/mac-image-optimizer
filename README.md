@@ -73,8 +73,8 @@ crunch/
 
 ```bash
 # Clone the repo
-git clone https://github.com/huseyinemanet/mac-image-optimizer.git
-cd mac-image-optimizer
+git clone https://github.com/huseyinemanet/crunch.git
+cd crunch
 
 # Install dependencies
 npm install

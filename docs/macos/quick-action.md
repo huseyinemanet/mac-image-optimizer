@@ -13,7 +13,7 @@ This is a manual stub to create a Finder Quick Action that passes selected files
 
 ```bash
 for f in "$@"; do
-  open -a "Mac Image Optimizer" "$f"
+  open -a "Crunch" "$f"
 done
 ```
 
