@@ -1,86 +1,103 @@
-# Mac Image Optimizer
-
-A premium, **100% local** image optimization suite built exclusively for macOS. Designed with a native aesthetic and optimized for Apple Silicon, it provides professional-grade results without ever leaving your machine.
+<p align="center">
+  <h1 align="center">🍎 Crunch</h1>
+  <p align="center">
+    <strong>Blazing-fast, 100% local image optimizer built for macOS.</strong>
+  </p>
+  <p align="center">
+    Compress JPEG · Crush PNG · Convert to WebP — all without leaving your Mac.
+  </p>
+</p>
 
 ---
 
 ## ✨ Features
 
-- **Blazing Fast Pipeline** — Harnesses `MozJPEG`, `pngquant`, `oxipng`, and `cwebp` for optimal compression.
-- **Convert to WebP** — Elegant batch conversion with configurable presets and visual fidelity guards.
-- **SSIM Quality Protection** — Intelligent quality guard ensures every optimization meets your visual standards (default SSIM 0.99).
-- **macOS Native Excellence** — Custom UI built to feel like part of the system, including:
-    - Native macOS notifications & completion alerts.
-    - System-style toggles, sliders, and tabbed settings panels.
-    - Full dark mode support.
-- **Workflow Integration** —
-    - **Watch Folders**: Automated optimization for chosen directories.
-    - **Clipboard Support**: Copy images/screenshots; optimize them instantly from the clipboard.
-    - **Drag & Drop**: Seamlessly add files and folders to the queue.
-- **Advanced Control** — Multi-threaded execution, automatic updates, and a "Restore Last Run" safety net with local backups.
+| Feature | Details |
+|---|---|
+| **Smart Compression** | MozJPEG, pngquant, oxipng & cwebp — the best open-source tools in one pipeline |
+| **WebP Conversion** | Batch-convert any image to WebP with configurable quality presets |
+| **SSIM Quality Guard** | Automatic visual-fidelity check (default ≥ 0.99) prevents over-compression |
+| **Watch Folders** | Pick any directory and Crunch optimizes new files the moment they appear |
+| **Clipboard Support** | Copy a screenshot → Crunch grabs and optimizes it instantly |
+| **Drag & Drop** | Drop files or entire folders onto the window to start optimizing |
+| **macOS-Native UI** | Dark mode, system-style toggles, sliders, tabs — feels right at home |
+| **Non-Destructive** | Originals stay untouched; optimized copies land in an `Optimized/` subfolder |
+| **Apple Silicon Ready** | Multi-threaded worker pool that scales with your CPU cores |
+
+## 🖥 Screenshots
+
+> _Coming soon_
 
 ## 🛠 Tech Stack
 
-| Component | Technology |
+| Layer | Technology |
 |---|---|
-| **Framework** | Electron 40 (Stable) |
-| **Frontend** | React 19, TypeScript 5.9 |
-| **Styling** | Tailwind CSS 4.2 |
-| **Processing** | sharp, MozJPEG, pngquant, oxipng, cwebp |
-| **Metrics** | SSIM.js |
-| **Build Tool** | Vite 7 |
+| Runtime | Electron 40 |
+| UI | React 19 · TypeScript 5.9 · Tailwind CSS 4.2 |
+| Bundler | Vite 7 |
+| Image Processing | sharp · MozJPEG · pngquant · oxipng · cwebp |
+| Quality Metrics | SSIM.js |
 
 ## 📁 Project Structure
 
 ```
-mac-image-optimizer/
-├── apps/desktop/                   # Electron desktop application
+crunch/
+├── apps/desktop/
 │   ├── src/
-│   │   ├── main/                   # Main process (IPC, Optimizer, Watchers)
-│   │   ├── renderer/               # React renderer (macOS-native UI)
-│   │   └── shared/                 # Shared types & utilities
-│   └── resources/                  # Bundled native binaries
-├── docs/                           # Project documentation
-├── scripts/                        # Build & maintenance scripts
-└── package.json                    # Workspace configuration
+│   │   ├── main/               # Electron main process
+│   │   │   ├── optimizer/      # Compression pipeline & tools
+│   │   │   ├── watch/          # Folder-watch service
+│   │   │   └── clipboardWatcher.ts
+│   │   ├── renderer/           # React front-end
+│   │   │   ├── components/     # UI components
+│   │   │   ├── hooks/          # Custom React hooks
+│   │   │   └── utils/          # Formatting helpers
+│   │   └── shared/             # Shared types
+│   └── resources/
+│       ├── bin/                # Bundled native binaries
+│       └── lib/                # Shared dynamic libraries
+├── docs/
+├── scripts/
+└── package.json                # Workspace root
 ```
 
 ## 🚀 Getting Started
 
 ### Prerequisites
 
-- **macOS** 13+ (Ventura or later recommended)
-- **Node.js** ≥ 22.12
+- **macOS** 13+ (Ventura or later)
+- **Node.js** ≥ 22
 - **npm** ≥ 10
 
-### Development
+### Install & Run
 
 ```bash
+# Clone the repo
+git clone https://github.com/huseyinemanet/mac-image-optimizer.git
+cd mac-image-optimizer
+
 # Install dependencies
 npm install
 
-# Start development environment
+# Start in development mode
+cd apps/desktop
 npm run dev
 ```
 
-### Distribution
+### Build & Package
 
 ```bash
-# Build production assets
-npm run build
-
-# Package for macOS (creates DMG)
-npm run package
+# Build production assets + create DMG installer
+npm run dist
 ```
 
-Outputs are located in `apps/desktop/release/`.
+The `.dmg` file will be in `apps/desktop/release/`.
 
-## 🔒 Safety & Performance
+## 🔒 Safety & Privacy
 
-- **Non-Destructive by Default**: Saves to an `Optimized` subfolder; original files remain untouched.
-- **Atomic Operations**: Uses temporary files and atomic renames to prevent data loss.
-- **Local First**: Zero cloud dependency. Your images never leave your Mac.
-- **Apple Silicon Optimized**: Multi-threaded worker pool scales automatically with your Mac's CPU cores.
+- **Non-Destructive** — Originals are never modified; results go to an `Optimized/` subfolder.
+- **Atomic Writes** — Temp files + atomic rename prevent corruption.
+- **100% Offline** — Zero cloud calls. Your images never leave your Mac.
 
 ## 📄 License
 

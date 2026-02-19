@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getWebpQualityAttempts, resolveWebpOutputPath, shouldSkipForLargerOutput } from './optimiser';
+import { getWebpQualityAttempts, resolveWebpOutputPath, shouldSkipForLargerOutput } from './index';
 
 describe('resolveWebpOutputPath', () => {
   it('maps to Optimized subfolder in subfolder mode', () => {

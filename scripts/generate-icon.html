@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Crunch Icon Generator</title>
+<style>
+  body { background: #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: -apple-system, sans-serif; color: white; }
+  canvas { border-radius: 20px; }
+  a { margin-top: 20px; padding: 12px 24px; background: #6C5CE7; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; }
+</style>
+</head>
+<body>
+<canvas id="icon" width="1024" height="1024"></canvas>
+<a id="download" download="icon.png">Download Icon (1024×1024)</a>
+
+<script>
+const canvas = document.getElementById('icon');
+const ctx = canvas.getContext('2d');
+const W = 1024, H = 1024;
+
+// ─── Rounded Square Background ────────────────────────────────
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// Background gradient
+const bgGrad = ctx.createLinearGradient(0, 0, W, H);
+bgGrad.addColorStop(0, '#6C5CE7');
+bgGrad.addColorStop(0.5, '#a855f7');
+bgGrad.addColorStop(1, '#3B82F6');
+
+roundRect(ctx, 0, 0, W, H, 220);
+ctx.fillStyle = bgGrad;
+ctx.fill();
+
+// Inner glow/shine
+const shineGrad = ctx.createRadialGradient(W*0.35, H*0.25, 50, W*0.5, H*0.5, W*0.7);
+shineGrad.addColorStop(0, 'rgba(255,255,255,0.25)');
+shineGrad.addColorStop(1, 'rgba(255,255,255,0)');
+roundRect(ctx, 0, 0, W, H, 220);
+ctx.fillStyle = shineGrad;
+ctx.fill();
+
+// ─── 3D Vise / Compression Effect ────────────────────────────
+// Draw a stylized image frame being squeezed
+
+// Shadow under the frame
+ctx.save();
+ctx.shadowColor = 'rgba(0,0,0,0.4)';
+ctx.shadowBlur = 40;
+ctx.shadowOffsetY = 15;
+
+// Image frame (squeezed)
+const frameX = 260, frameY = 240, frameW = 500, frameH = 460;
+roundRect(ctx, frameX, frameY, frameW, frameH, 30);
+ctx.fillStyle = '#ffffff';
+ctx.fill();
+ctx.restore();
+
+// Image content (gradient representing an image)
+const imgGrad = ctx.createLinearGradient(frameX, frameY, frameX + frameW, frameY + frameH);
+imgGrad.addColorStop(0, '#ffecd2');
+imgGrad.addColorStop(0.3, '#fcb69f');
+imgGrad.addColorStop(0.6, '#a18cd1');
+imgGrad.addColorStop(1, '#fbc2eb');
+roundRect(ctx, frameX + 15, frameY + 15, frameW - 30, frameH - 30, 20);
+ctx.fillStyle = imgGrad;
+ctx.fill();
+
+// Mountain scene inside the "image"
+ctx.save();
+roundRect(ctx, frameX + 15, frameY + 15, frameW - 30, frameH - 30, 20);
+ctx.clip();
+
+// Sky gradient
+const skyGrad = ctx.createLinearGradient(0, frameY, 0, frameY + frameH);
+skyGrad.addColorStop(0, '#74b9ff');
+skyGrad.addColorStop(1, '#dfe6e9');
+ctx.fillStyle = skyGrad;
+ctx.fillRect(frameX, frameY, frameW, frameH);
+
+// Sun
+ctx.beginPath();
+ctx.arc(frameX + 380, frameY + 100, 55, 0, Math.PI * 2);
+ctx.fillStyle = '#ffeaa7';
+ctx.fill();
+ctx.beginPath();
+ctx.arc(frameX + 380, frameY + 100, 45, 0, Math.PI * 2);
+ctx.fillStyle = '#fdcb6e';
+ctx.fill();
+
+// Mountains
+ctx.beginPath();
+ctx.moveTo(frameX - 10, frameY + frameH);
+ctx.lineTo(frameX + 120, frameY + 200);
+ctx.lineTo(frameX + 260, frameY + frameH);
+ctx.fillStyle = '#636e72';
+ctx.fill();
+
+ctx.beginPath();
+ctx.moveTo(frameX + 150, frameY + frameH);
+ctx.lineTo(frameX + 320, frameY + 160);
+ctx.lineTo(frameX + 520, frameY + frameH);
+ctx.fillStyle = '#2d3436';
+ctx.fill();
+
+// Snow cap
+ctx.beginPath();
+ctx.moveTo(frameX + 320, frameY + 160);
+ctx.lineTo(frameX + 290, frameY + 210);
+ctx.lineTo(frameX + 310, frameY + 200);
+ctx.lineTo(frameX + 340, frameY + 220);
+ctx.lineTo(frameX + 350, frameY + 210);
+ctx.fillStyle = '#dfe6e9';
+ctx.fill();
+
+// Green ground
+ctx.beginPath();
+ctx.moveTo(frameX - 10, frameY + frameH);
+ctx.lineTo(frameX + frameW + 10, frameY + frameH);
+ctx.lineTo(frameX + frameW + 10, frameY + frameH - 80);
+ctx.quadraticCurveTo(frameX + frameW/2, frameY + frameH - 130, frameX - 10, frameY + frameH - 60);
+ctx.fillStyle = '#00b894';
+ctx.fill();
+
+ctx.restore();
+
+// ─── Compression Arrows (squeeze effect) ──────────────────────
+// Top arrow pressing down
+ctx.save();
+ctx.shadowColor = 'rgba(0,0,0,0.3)';
+ctx.shadowBlur = 20;
+ctx.shadowOffsetY = 5;
+
+// Top press bar
+roundRect(ctx, 220, 160, 580, 70, 15);
+const topBarGrad = ctx.createLinearGradient(0, 160, 0, 230);
+topBarGrad.addColorStop(0, '#dfe6e9');
+topBarGrad.addColorStop(1, '#b2bec3');
+ctx.fillStyle = topBarGrad;
+ctx.fill();
+
+// Arrow down indicators
+ctx.fillStyle = 'rgba(45,52,54,0.6)';
+for (let i = 0; i < 3; i++) {
+  const ax = 400 + (i - 1) * 120;
+  ctx.beginPath();
+  ctx.moveTo(ax - 18, 180);
+  ctx.lineTo(ax + 18, 180);
+  ctx.lineTo(ax, 215);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// Bottom press bar
+roundRect(ctx, 220, 710, 580, 70, 15);
+const botBarGrad = ctx.createLinearGradient(0, 710, 0, 780);
+botBarGrad.addColorStop(0, '#b2bec3');
+botBarGrad.addColorStop(1, '#dfe6e9');
+ctx.fillStyle = botBarGrad;
+ctx.fill();
+
+// Arrow up indicators
+ctx.fillStyle = 'rgba(45,52,54,0.6)';
+for (let i = 0; i < 3; i++) {
+  const ax = 400 + (i - 1) * 120;
+  ctx.beginPath();
+  ctx.moveTo(ax - 18, 760);
+  ctx.lineTo(ax + 18, 760);
+  ctx.lineTo(ax, 725);
+  ctx.closePath();
+  ctx.fill();
+}
+
+ctx.restore();
+
+// ─── "C" Letter Badge in bottom-left ──────────────────────────
+ctx.save();
+ctx.shadowColor = 'rgba(0,0,0,0.5)';
+ctx.shadowBlur = 25;
+
+ctx.beginPath();
+ctx.arc(200, 780, 100, 0, Math.PI * 2);
+const badgeGrad = ctx.createRadialGradient(180, 760, 20, 200, 780, 100);
+badgeGrad.addColorStop(0, '#fd79a8');
+badgeGrad.addColorStop(1, '#e84393');
+ctx.fillStyle = badgeGrad;
+ctx.fill();
+
+ctx.font = 'bold 120px -apple-system, SF Pro Display, sans-serif';
+ctx.fillStyle = '#ffffff';
+ctx.textAlign = 'center';
+ctx.textBaseline = 'middle';
+ctx.fillText('C', 200, 775);
+ctx.restore();
+
+// ─── Top glass reflection ─────────────────────────────────────
+ctx.save();
+roundRect(ctx, 0, 0, W, H, 220);
+ctx.clip();
+const reflGrad = ctx.createLinearGradient(0, 0, 0, H * 0.5);
+reflGrad.addColorStop(0, 'rgba(255,255,255,0.12)');
+reflGrad.addColorStop(1, 'rgba(255,255,255,0)');
+ctx.fillStyle = reflGrad;
+ctx.fillRect(0, 0, W, H * 0.5);
+ctx.restore();
+
+// Download link
+document.getElementById('download').href = canvas.toDataURL('image/png');
+</script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 {
-  "name": "desktop",
+  "name": "crunch",
   "version": "1.0.0",
   "private": true,
   "main": "dist-electron/main/main.js",
@@ -11,8 +11,8 @@
     "build": "npm run build:main && npm run build:renderer",
     "build:main": "tsc -p tsconfig.main.json",
     "build:renderer": "vite build",
-    "dist": "npm run build && electron-builder",
-    "package": "npm run dist",
+    "dist": "npm run build && electron-builder --dir && bash scripts/create-dmg.sh",
+    "dist:app": "npm run build && electron-builder --dir",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -42,8 +42,8 @@
     "wait-on": "^9.0.4"
   },
   "build": {
-    "appId": "com.macimageoptimizer.app",
-    "productName": "Mac Image Optimizer",
+    "appId": "com.crunch.app",
+    "productName": "Crunch",
     "files": [
       "dist/**",
       "dist-electron/**",
@@ -52,11 +52,37 @@
     "directories": {
       "output": "release"
     },
+    "extraResources": [
+      {
+        "from": "resources/bin",
+        "to": "bin"
+      },
+      {
+        "from": "resources/lib",
+        "to": "lib"
+      }
+    ],
     "mac": {
       "target": [
         "dmg"
       ],
+      "identity": null,
       "category": "public.app-category.graphics-design"
+    },
+    "dmg": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "contents": [
+        {
+          "x": 140,
+          "y": 200
+        },
+        {
+          "x": 400,
+          "y": 200,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
     }
   }
 }

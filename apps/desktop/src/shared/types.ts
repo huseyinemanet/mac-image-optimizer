@@ -18,7 +18,9 @@ export interface OptimiseSettings {
   namingPattern: string;
   keepMetadata: boolean;
   optimizeClipboardImages: boolean;
+  jpegQualityMode: 'auto' | 'fixed';
   jpegQuality: number;
+  webpQualityMode: 'auto' | 'fixed';
   webpNearLossless: boolean;
   webpQuality: number;
   webpEffort: number;
@@ -32,6 +34,29 @@ export interface OptimiseSettings {
   deleteOriginalAfterWebp: boolean;
   qualityGuardrailSsim: boolean;
 }
+
+export const DEFAULT_SETTINGS: OptimiseSettings = {
+  outputMode: 'subfolder',
+  exportPreset: 'web',
+  namingPattern: '{name}',
+  keepMetadata: false,
+  optimizeClipboardImages: false,
+  jpegQualityMode: 'auto',
+  jpegQuality: 82,
+  webpQualityMode: 'auto',
+  webpNearLossless: false,
+  webpQuality: 80,
+  webpEffort: 5,
+  reencodeExistingWebp: false,
+  aggressivePng: false,
+  concurrencyMode: 'auto',
+  concurrencyValue: 3,
+  allowLargerOutput: false,
+  replaceWithWebp: false,
+  confirmDangerousWebpReplace: false,
+  deleteOriginalAfterWebp: false,
+  qualityGuardrailSsim: false,
+};
 
 export interface StartRunPayload {
   paths: string[];
@@ -170,9 +195,7 @@ declare global {
       selectFiles: () => Promise<string[]>;
       scanPaths: (paths: string[]) => Promise<ImageListItem[]>;
       startRun: (payload: StartRunPayload) => Promise<StartRunResult>;
-      startOptimize: (payload: StartRunPayload) => Promise<StartRunResult>;
       cancelRun: (runId: string) => Promise<void>;
-      cancelOptimize: (runId: string) => Promise<void>;
       restoreLastRun: () => Promise<{ restoredCount: number; failedCount: number; message: string }>;
       canRestoreLastRun: () => Promise<boolean>;
       onProgress: (cb: (event: RunProgressEvent) => void) => () => void;

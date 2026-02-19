@@ -1,3 +1,4 @@
+import React from 'react';
 import type { RunMode } from '@/shared/types';
 
 interface BottomBarProps {
@@ -32,7 +33,7 @@ export function BottomBar({
   onModeChange,
   onRun,
   onCancel
-}: BottomBarProps): JSX.Element {
+}: BottomBarProps): React.JSX.Element {
   return (
     <footer className="bottom-sticky-bar">
       {/* Left Column: Summary Info */}

@@ -1,6 +1,7 @@
 import type { DragEventHandler, MouseEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import type { OptimiseSettings, RunMode } from '@/shared/types';
+import { DEFAULT_SETTINGS } from '@/shared/types';
 import { BottomBar } from './components/BottomBar';
 import { DropZone } from './components/DropZone';
 import { FileTable } from './components/FileTable';
@@ -11,31 +12,10 @@ import { formatBytes, formatElapsed } from './utils/format';
 import { useFileManagement } from './hooks/useFileManagement';
 import { useOptimizationRun } from './hooks/useOptimizationRun';
 
-const defaultSettings: OptimiseSettings = {
-  outputMode: 'subfolder',
-  exportPreset: 'web',
-  namingPattern: '{name}',
-  keepMetadata: false,
-  optimizeClipboardImages: false,
-  jpegQuality: 82,
-  webpNearLossless: false,
-  webpQuality: 80,
-  webpEffort: 5,
-  reencodeExistingWebp: false,
-  aggressivePng: false,
-  concurrencyMode: 'auto',
-  concurrencyValue: 3,
-  allowLargerOutput: false,
-  replaceWithWebp: false,
-  confirmDangerousWebpReplace: false,
-  deleteOriginalAfterWebp: false,
-  qualityGuardrailSsim: false
-};
-
-export function AppShell(): JSX.Element {
+export function AppShell(): React.JSX.Element {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settings, setSettings] = useState<OptimiseSettings>(defaultSettings);
+  const [settings, setSettings] = useState<OptimiseSettings>(DEFAULT_SETTINGS);
   const [mode, setMode] = useState<RunMode>('optimize');
   const [canRestore, setCanRestore] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -155,14 +135,12 @@ export function AppShell(): JSX.Element {
   };
 
   const onDragEnter: DragEventHandler<HTMLDivElement> = (event) => {
-    console.log('[App] onDragEnter', event);
     event.preventDefault();
     event.stopPropagation();
     setDragActive(true);
   };
 
   const onDragLeave: DragEventHandler<HTMLDivElement> = (event) => {
-    console.log('[App] onDragLeave');
     event.preventDefault();
     event.stopPropagation();
     setDragActive(false);
@@ -174,25 +152,18 @@ export function AppShell(): JSX.Element {
   };
 
   const onDrop: DragEventHandler<HTMLDivElement> = async (event) => {
-    console.log('[App] onDrop', event);
     event.preventDefault();
     event.stopPropagation();
     setDragActive(false);
     setShowDropHint(false);
 
     const files = Array.from(event.dataTransfer.files);
-    console.log('[App] Dropped files:', files.map(f => ({ name: f.name, path: (f as any).path })));
-
     const dropped = files
       .map((file) => window.api.getPathForFile(file))
       .filter((item): item is string => Boolean(item));
 
-    console.log('[App] Resolved paths:', dropped);
-
     if (dropped.length > 0) {
       await addPaths(dropped);
-    } else {
-      console.warn('[App] No paths resolved from drop event');
     }
   };
 
@@ -203,7 +174,6 @@ export function AppShell(): JSX.Element {
       e.preventDefault();
     };
     const onGlobalDrop = (e: DragEvent) => {
-      console.log('[App] Global Drop detected', e);
       e.preventDefault();
     };
     window.addEventListener('dragover', preventDefault);
@@ -351,6 +321,6 @@ export function AppShell(): JSX.Element {
   );
 }
 
-export default function App(): JSX.Element {
+export default function App(): React.JSX.Element {
   return <AppShell />;
 }

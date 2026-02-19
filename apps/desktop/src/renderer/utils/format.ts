@@ -18,8 +18,10 @@ export function formatBytes(bytes: number): string {
 }
 
 export function formatElapsed(elapsedMs: number): string {
-  const seconds = Math.max(0, Math.round(elapsedMs / 1000));
-  return `00:${String(seconds).padStart(2, '0')}`;
+  const totalSeconds = Math.max(0, Math.round(elapsedMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 export function formatPercent(beforeBytes: number, afterBytes: number): number {

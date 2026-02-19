@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { clipboard, nativeImage } from 'electron';
-import type { OptimiseSettings } from '../shared/types';
+import type { ClipboardOptimizedEvent, ClipboardErrorEvent, OptimiseSettings } from '../shared/types';
 import { computeSsim } from './optimizer/metrics/ssim';
 import { runOxipng } from './optimizer/tools/oxipng';
 import { runPngquant } from './optimizer/tools/pngquant';
@@ -14,16 +14,6 @@ const HASH_MEMORY_LIMIT = 500;
 const HASH_TTL_MS = 10 * 60 * 1000;
 const DEBOUNCE_MS = 500;
 
-export interface ClipboardOptimizedEvent {
-  originalBytes: number;
-  optimizedBytes: number;
-  savedBytes: number;
-  savedPercent: number;
-}
-
-export interface ClipboardErrorEvent {
-  message: string;
-}
 
 interface Candidate {
   buffer: Buffer;
@@ -77,10 +67,10 @@ async function optimizeClipboardPng(originalBuffer: Buffer, aggressivePng: boole
 
     const quantRanges = aggressivePng
       ? [
-          { min: 80, max: 95 },
-          { min: 75, max: 90 },
-          { min: 70, max: 85 }
-        ]
+        { min: 80, max: 95 },
+        { min: 75, max: 90 },
+        { min: 70, max: 85 }
+      ]
       : [{ min: 80, max: 95 }];
 
     for (const range of quantRanges) {
@@ -126,7 +116,7 @@ export class ClipboardWatcherService {
   constructor(
     private readonly onOptimized: (payload: ClipboardOptimizedEvent) => void,
     private readonly onError: (payload: ClipboardErrorEvent) => void
-  ) {}
+  ) { }
 
   start(): void {
     if (this.timer) {

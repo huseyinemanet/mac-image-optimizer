@@ -1,12 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import type { OutputMode } from '../../../shared/types';
-
-export interface BackupRecord {
-  originalPath: string;
-  backupPath: string;
-  removeOnRestore?: string;
-}
+import type { BackupRecord, OutputMode } from '../../../shared/types';
+export type { BackupRecord } from '../../../shared/types';
 
 export function tempFilePath(targetPath: string): string {
   const tempDir = path.join(path.dirname(targetPath), '.optimise-tmp');

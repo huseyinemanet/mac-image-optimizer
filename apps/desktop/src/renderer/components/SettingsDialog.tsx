@@ -269,7 +269,7 @@ function WebPPanel({ settings, onChange }: { settings: OptimiseSettings; onChang
 const TAB_NAMES = ['General', 'Optimization', 'WebP'] as const;
 type TabName = typeof TAB_NAMES[number];
 
-export function SettingsDialog({ open, runMode, settings, onClose, onChange }: SettingsDialogProps): JSX.Element {
+export function SettingsDialog({ open, runMode, settings, onClose, onChange }: SettingsDialogProps): React.JSX.Element {
   const [activeTab, setActiveTab] = useState<TabName>('General');
 
   return (

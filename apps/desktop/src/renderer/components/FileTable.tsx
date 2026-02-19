@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, type MouseEvent } from 'react';
+import React, { useState, useRef, useEffect, useCallback, type MouseEvent } from 'react';
 import type { FileStatus } from '@/shared/types';
 
 export interface FileTableRow {
@@ -21,7 +21,7 @@ interface FileTableProps {
   showDropHint: boolean;
 }
 
-function statusBadge(row: FileTableRow): JSX.Element {
+function statusBadge(row: FileTableRow): React.JSX.Element {
   let badgeLabel = '';
   let badgeBg = 'var(--macos-green)';
   if (row.status === 'Processing') {
@@ -53,7 +53,7 @@ function statusBadge(row: FileTableRow): JSX.Element {
   );
 }
 
-export function FileTable({ rows, selected, onSelect, onContextMenu, setSelected, showDropHint }: FileTableProps): JSX.Element {
+export function FileTable({ rows, selected, onSelect, onContextMenu, setSelected, showDropHint }: FileTableProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const [lasso, setLasso] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const startPos = useRef<{ x: number; y: number } | null>(null);

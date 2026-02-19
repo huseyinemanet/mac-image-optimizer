@@ -1,3 +1,4 @@
+import React from 'react';
 import type { DragEventHandler } from 'react';
 
 interface DropZoneProps {
@@ -7,13 +8,13 @@ interface DropZoneProps {
   isDragActive: boolean;
 }
 
-export function DropZone({ onDrop, onDragEnter, onDragLeave, isDragActive }: DropZoneProps): JSX.Element {
+export function DropZone({ onDrop, onDragEnter, onDragLeave, isDragActive }: DropZoneProps): React.JSX.Element {
   return (
     <div
-      onDragEnter={(e) => { console.log('[DropZone] onDragEnter'); onDragEnter(e); }}
-      onDragLeave={(e) => { console.log('[DropZone] onDragLeave'); onDragLeave(e); }}
+      onDragEnter={onDragEnter}
+      onDragLeave={onDragLeave}
       onDragOver={(event) => event.preventDefault()}
-      onDrop={(e) => { console.log('[DropZone] onDrop'); onDrop(e); }}
+      onDrop={onDrop}
       className="grid h-full place-items-center rounded-lg transition-colors"
       style={{
         border: `1.5px dashed ${isDragActive ? 'var(--macos-accent)' : 'var(--macos-separator)'}`,

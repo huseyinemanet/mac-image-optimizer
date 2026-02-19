@@ -1,26 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import chokidar, { type FSWatcher } from 'chokidar';
-import type { OptimiseSettings, RunMode, WorkerResponse, WorkerTask } from '../../shared/types';
+import type { OptimiseSettings, RunMode, WorkerResponse, WorkerTask, WatchFileDetectedEvent, WatchFileOptimizedEvent } from '../../shared/types';
+import { DEFAULT_SETTINGS } from '../../shared/types';
 import { getAutoConcurrency, WorkerPool } from '../optimizer/workerPool';
 
 interface PersistedWatchState {
   folders: string[];
-}
-
-export interface WatchFileDetectedEvent {
-  folder: string;
-  path: string;
-}
-
-export interface WatchFileOptimizedEvent {
-  folder: string;
-  path: string;
-  status: 'success' | 'skipped' | 'failed';
-  beforeBytes: number;
-  afterBytes: number;
-  savedBytes: number;
-  message?: string;
 }
 
 const WATCH_FILE_NAME = 'watch-folders.json';
@@ -48,29 +34,6 @@ function shouldIgnorePath(inputPath: string): boolean {
   return isTempFile(inputPath);
 }
 
-function defaultWatchSettings(): OptimiseSettings {
-  return {
-    outputMode: 'subfolder',
-    exportPreset: 'web',
-    namingPattern: '{name}',
-    keepMetadata: false,
-    optimizeClipboardImages: false,
-    jpegQuality: 82,
-    webpNearLossless: true,
-    webpQuality: 80,
-    webpEffort: 5,
-    reencodeExistingWebp: false,
-    aggressivePng: false,
-    concurrencyMode: 'auto',
-    concurrencyValue: 3,
-    allowLargerOutput: false,
-    replaceWithWebp: false,
-    confirmDangerousWebpReplace: false,
-    deleteOriginalAfterWebp: false,
-    qualityGuardrailSsim: false
-  };
-}
-
 export class WatchFolderService {
   private readonly settingsPath: string;
   private readonly watchers = new Map<string, FSWatcher>();
@@ -82,7 +45,7 @@ export class WatchFolderService {
   private readonly maxConcurrent: number;
 
   private activeJobs = 0;
-  private optimizeSettings: OptimiseSettings = defaultWatchSettings();
+  private optimizeSettings: OptimiseSettings = { ...DEFAULT_SETTINGS };
   private optimizeMode: RunMode = 'optimize';
 
   constructor(

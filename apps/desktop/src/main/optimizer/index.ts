@@ -1,6 +1,5 @@
 import path from 'node:path';
-import type { OutputMode, WorkerTask } from '../../shared/types';
-import { processFile } from './pipeline';
+import type { OutputMode } from '../../shared/types';
 
 export { processFile } from './pipeline';
 export { getJpegQualities, getWebpQualities, getPngQualityRanges, shouldSkipIfLarger } from './candidates';
@@ -45,9 +44,3 @@ export function resolveWebpOutputPath(
   return path.join(parsed.dir, `${parsed.name}.webp`);
 }
 
-export function withCommonRoot(task: WorkerTask, commonRoot: string): WorkerTask {
-  return {
-    ...task,
-    commonRoot
-  };
-}

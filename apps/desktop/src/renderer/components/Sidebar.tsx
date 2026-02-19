@@ -1,3 +1,4 @@
+import React from 'react';
 import { IconAdd, IconGear } from './Icons';
 
 interface SidebarProps {
@@ -32,7 +33,7 @@ function IconRestoreLast() {
 	);
 }
 
-export function Sidebar({ busy, showRestore, onPickFolder, onPickFiles, onRestore, onOpenSettings }: SidebarProps): JSX.Element {
+export function Sidebar({ busy, showRestore, onPickFolder, onPickFiles, onRestore, onOpenSettings }: SidebarProps): React.JSX.Element {
 	return (
 		<aside className="sidebar">
 			<div className="sidebar-header" />

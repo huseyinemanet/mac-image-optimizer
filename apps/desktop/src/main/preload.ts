@@ -7,100 +7,70 @@ import type {
   StartRunPayload,
   StartRunResult,
   WatchFileDetectedEvent,
-  WatchFileOptimizedEvent
+  WatchFileOptimizedEvent,
 } from '../shared/types';
 
+/** Creates a typed IPC event listener with proper cleanup. */
+function createListener<T>(channel: string) {
+  return (cb: (payload: T) => void) => {
+    const listener = (_event: unknown, payload: T) => cb(payload);
+    ipcRenderer.on(channel, listener);
+    return () => {
+      ipcRenderer.removeListener(channel, listener);
+    };
+  };
+}
+
 contextBridge.exposeInMainWorld('api', {
+  // ── Utilities ──
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
+
+  // ── Dialogs ──
   selectFolder: () => ipcRenderer.invoke('dialog:select-folder') as Promise<string | null>,
   selectFiles: () => ipcRenderer.invoke('dialog:select-files') as Promise<string[]>,
+
+  // ── File Scanning ──
   scanPaths: (paths: string[]) => ipcRenderer.invoke('scan:paths', paths) as Promise<ImageListItem[]>,
+
+  // ── Optimization Run ──
   startRun: (payload: StartRunPayload) => ipcRenderer.invoke('run:start', payload) as Promise<StartRunResult>,
-  startOptimize: (payload: StartRunPayload) => ipcRenderer.invoke('optimize:start', payload) as Promise<StartRunResult>,
   cancelRun: (runId: string) => ipcRenderer.invoke('run:cancel', runId) as Promise<void>,
-  cancelOptimize: (runId: string) => ipcRenderer.invoke('optimize:cancel', runId) as Promise<void>,
-  onProgress: (cb: (event: RunProgressEvent) => void) => {
-    const listener = (_event: unknown, payload: RunProgressEvent) => cb(payload);
-    ipcRenderer.on('run:progress', listener);
-    return () => {
-      ipcRenderer.removeListener('run:progress', listener);
-    };
-  },
-  addWatchFolder: (path: string) => ipcRenderer.invoke('watch:add-folder', path) as Promise<string[]>,
-  removeWatchFolder: (path: string) => ipcRenderer.invoke('watch:remove-folder', path) as Promise<string[]>,
-  listWatchFolders: () => ipcRenderer.invoke('watch:list-folders') as Promise<string[]>,
-  onWatchFileDetected: (cb: (event: WatchFileDetectedEvent) => void) => {
-    const listener = (_event: unknown, payload: WatchFileDetectedEvent) => cb(payload);
-    ipcRenderer.on('watch:fileDetected', listener);
-    return () => {
-      ipcRenderer.removeListener('watch:fileDetected', listener);
-    };
-  },
-  onWatchFileOptimized: (cb: (event: WatchFileOptimizedEvent) => void) => {
-    const listener = (_event: unknown, payload: WatchFileOptimizedEvent) => cb(payload);
-    ipcRenderer.on('watch:fileOptimized', listener);
-    return () => {
-      ipcRenderer.removeListener('watch:fileOptimized', listener);
-    };
-  },
-  setClipboardAutoOptimize: (payload: { enabled: boolean; settings: StartRunPayload['settings'] }) =>
-    ipcRenderer.invoke('clipboard:auto-optimize', payload) as Promise<void>,
-  onClipboardOptimized: (cb: (event: ClipboardOptimizedEvent) => void) => {
-    const listener = (_event: unknown, payload: ClipboardOptimizedEvent) => cb(payload);
-    ipcRenderer.on('clipboard:optimized', listener);
-    return () => {
-      ipcRenderer.removeListener('clipboard:optimized', listener);
-    };
-  },
-  onClipboardError: (cb: (event: ClipboardErrorEvent) => void) => {
-    const listener = (_event: unknown, payload: ClipboardErrorEvent) => cb(payload);
-    ipcRenderer.on('clipboard:error', listener);
-    return () => {
-      ipcRenderer.removeListener('clipboard:error', listener);
-    };
-  },
+  onProgress: createListener<RunProgressEvent>('run:progress'),
+
+  // ── Restore ──
   restoreLastRun: () =>
     ipcRenderer.invoke('optimise:restore-last') as Promise<{ restoredCount: number; failedCount: number; message: string }>,
   canRestoreLastRun: () => ipcRenderer.invoke('optimise:can-restore-last') as Promise<boolean>,
+
+  // ── File Operations ──
   revealInFileManager: (paths: string[]) => ipcRenderer.invoke('file:reveal', paths) as Promise<void>,
   openPath: (path: string) => ipcRenderer.invoke('file:open', path) as Promise<void>,
   copyToClipboard: (text: string) => ipcRenderer.invoke('clipboard:write', text) as Promise<void>,
+
+  // ── Notifications ──
   notify: (title: string, body?: string, silent?: boolean) =>
     ipcRenderer.invoke('notification:show', { title, body, silent }) as Promise<void>,
-  onLog: (cb: (payload: { level: string; context: string; message: string; args: any[] }) => void) => {
-    const listener = (_event: unknown, payload: { level: string; context: string; message: string; args: any[] }) => cb(payload);
-    ipcRenderer.on('app:log', listener);
-    return () => {
-      ipcRenderer.removeListener('app:log', listener);
-    };
-  },
+
+  // ── Watch Folders ──
+  addWatchFolder: (path: string) => ipcRenderer.invoke('watch:add-folder', path) as Promise<string[]>,
+  removeWatchFolder: (path: string) => ipcRenderer.invoke('watch:remove-folder', path) as Promise<string[]>,
+  listWatchFolders: () => ipcRenderer.invoke('watch:list-folders') as Promise<string[]>,
+  onWatchFileDetected: createListener<WatchFileDetectedEvent>('watch:fileDetected'),
+  onWatchFileOptimized: createListener<WatchFileOptimizedEvent>('watch:fileOptimized'),
+
+  // ── Clipboard Auto-Optimize ──
+  setClipboardAutoOptimize: (payload: { enabled: boolean; settings: StartRunPayload['settings'] }) =>
+    ipcRenderer.invoke('clipboard:auto-optimize', payload) as Promise<void>,
+  onClipboardOptimized: createListener<ClipboardOptimizedEvent>('clipboard:optimized'),
+  onClipboardError: createListener<ClipboardErrorEvent>('clipboard:error'),
+
+  // ── Logging ──
+  onLog: createListener<{ level: string; context: string; message: string; args: any[] }>('app:log'),
+
+  // ── Context Menu ──
   showRowContextMenu: (paths: string[]) => ipcRenderer.send('menu:row-context', paths),
-  onRemoveItems: (cb: (paths: string[]) => void) => {
-    const listener = (_event: unknown, paths: string[]) => cb(paths);
-    ipcRenderer.on('menu:remove-items', listener);
-    return () => {
-      ipcRenderer.removeListener('menu:remove-items', listener);
-    };
-  },
-  onActionOptimize: (cb: (paths: string[]) => void) => {
-    const listener = (_event: unknown, paths: string[]) => cb(paths);
-    ipcRenderer.on('menu:action-optimize', listener);
-    return () => {
-      ipcRenderer.removeListener('menu:action-optimize', listener);
-    };
-  },
-  onActionConvert: (cb: (paths: string[]) => void) => {
-    const listener = (_event: unknown, paths: string[]) => cb(paths);
-    ipcRenderer.on('menu:action-convert', listener);
-    return () => {
-      ipcRenderer.removeListener('menu:action-convert', listener);
-    };
-  },
-  onActionReveal: (cb: (paths: string[]) => void) => {
-    const listener = (_event: unknown, paths: string[]) => cb(paths);
-    ipcRenderer.on('menu:action-reveal', listener);
-    return () => {
-      ipcRenderer.removeListener('menu:action-reveal', listener);
-    };
-  }
+  onRemoveItems: createListener<string[]>('menu:remove-items'),
+  onActionOptimize: createListener<string[]>('menu:action-optimize'),
+  onActionConvert: createListener<string[]>('menu:action-convert'),
+  onActionReveal: createListener<string[]>('menu:action-reveal'),
 });

@@ -4,6 +4,7 @@ import { execFile } from 'node:child_process';
 import { Logger } from '../../logger';
 
 const log = new Logger('Tools');
+const toolPathCache = new Map<string, string>();
 
 export class ToolError extends Error {
   exitCode: number | undefined;
@@ -14,10 +15,6 @@ export class ToolError extends Error {
   }
 }
 
-function binName(base: string): string {
-  return base;
-}
-
 function candidateBinDirs(): string[] {
   const fromCwd = path.join(process.cwd(), 'resources', 'bin');
   const fromAppPath = (process as any).resourcesPath ? path.join((process as any).resourcesPath, 'bin') : undefined;
@@ -26,14 +23,17 @@ function candidateBinDirs(): string[] {
 }
 
 export async function resolveToolPath(binary: string): Promise<string> {
-  const binaryName = binName(binary);
+  const cached = toolPathCache.get(binary);
+  if (cached) return cached;
+
   const checked: string[] = [];
   for (const dir of candidateBinDirs()) {
-    const full = path.join(dir, binaryName);
+    const full = path.join(dir, binary);
     checked.push(full);
     try {
       await fs.access(full);
       log.info(`Resolved tool ${binary} at ${full}`);
+      toolPathCache.set(binary, full);
       return full;
     } catch {
       continue;
@@ -41,7 +41,7 @@ export async function resolveToolPath(binary: string): Promise<string> {
   }
 
   log.error(`Failed to resolve tool ${binary}. Checked: ${checked.join(', ')}`);
-  throw new Error(`Missing optimizer binary: ${binaryName}. Expected under resources/bin.`);
+  throw new Error(`Missing optimizer binary: ${binary}. Expected under resources/bin.`);
 }
 
 export async function runTool(binaryPath: string, args: string[]): Promise<void> {

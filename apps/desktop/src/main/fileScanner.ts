@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
 import type { ImageListItem } from '../shared/types';
-import { isSupportedImagePath } from './optimizer/optimiser';
+import { isSupportedImagePath } from './optimizer';
 
 const IGNORE_DIRS = new Set(['node_modules', '.git', '.optimise-backup', '.optimise-tmp', 'Optimized', 'Originals Backup', '.optimise-logs']);
 const IGNORE_FILES = new Set(['.DS_Store']);
