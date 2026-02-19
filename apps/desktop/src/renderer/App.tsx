@@ -154,15 +154,65 @@ export function AppShell(): JSX.Element {
     window.api.showRowContextMenu?.(targetPaths);
   };
 
-  const onDrop: DragEventHandler<HTMLDivElement> = async (event) => {
+  const onDragEnter: DragEventHandler<HTMLDivElement> = (event) => {
+    console.log('[App] onDragEnter', event);
     event.preventDefault();
+    event.stopPropagation();
+    setDragActive(true);
+  };
+
+  const onDragLeave: DragEventHandler<HTMLDivElement> = (event) => {
+    console.log('[App] onDragLeave');
+    event.preventDefault();
+    event.stopPropagation();
+    setDragActive(false);
+  };
+
+  const onDragOver: DragEventHandler<HTMLDivElement> = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const onDrop: DragEventHandler<HTMLDivElement> = async (event) => {
+    console.log('[App] onDrop', event);
+    event.preventDefault();
+    event.stopPropagation();
     setDragActive(false);
     setShowDropHint(false);
-    const dropped = Array.from(event.dataTransfer.files)
-      .map((file) => (file as File & { path?: string }).path)
+
+    const files = Array.from(event.dataTransfer.files);
+    console.log('[App] Dropped files:', files.map(f => ({ name: f.name, path: (f as any).path })));
+
+    const dropped = files
+      .map((file) => window.api.getPathForFile(file))
       .filter((item): item is string => Boolean(item));
-    await addPaths(dropped);
+
+    console.log('[App] Resolved paths:', dropped);
+
+    if (dropped.length > 0) {
+      await addPaths(dropped);
+    } else {
+      console.warn('[App] No paths resolved from drop event');
+    }
   };
+
+  // Prevent default browser behavior for drag and drop globally
+  useEffect(() => {
+    const preventDefault = (e: DragEvent) => {
+      // Don't log dragover as it's too noisy, but ensure it's prevented
+      e.preventDefault();
+    };
+    const onGlobalDrop = (e: DragEvent) => {
+      console.log('[App] Global Drop detected', e);
+      e.preventDefault();
+    };
+    window.addEventListener('dragover', preventDefault);
+    window.addEventListener('drop', onGlobalDrop);
+    return () => {
+      window.removeEventListener('dragover', preventDefault);
+      window.removeEventListener('drop', onGlobalDrop);
+    };
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -237,17 +287,17 @@ export function AppShell(): JSX.Element {
 
         <div
           className="content-area"
-          onDragOver={(event) => event.preventDefault()}
-          onDragEnter={() => setDragActive(true)}
-          onDragLeave={() => setDragActive(false)}
+          onDragOver={onDragOver}
+          onDragEnter={onDragEnter}
+          onDragLeave={onDragLeave}
           onDrop={onDrop}
         >
           <main className="flex-1 flex flex-col min-h-0 w-full">
             {files.length === 0 ? (
               <DropZone
                 isDragActive={dragActive}
-                onDragEnter={() => setDragActive(true)}
-                onDragLeave={() => setDragActive(false)}
+                onDragEnter={onDragEnter}
+                onDragLeave={onDragLeave}
                 onDrop={onDrop}
               />
             ) : (

@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type {
   ClipboardErrorEvent,
   ClipboardOptimizedEvent,
@@ -11,6 +11,7 @@ import type {
 } from '../shared/types';
 
 contextBridge.exposeInMainWorld('api', {
+  getPathForFile: (file: File) => webUtils.getPathForFile(file),
   selectFolder: () => ipcRenderer.invoke('dialog:select-folder') as Promise<string | null>,
   selectFiles: () => ipcRenderer.invoke('dialog:select-files') as Promise<string[]>,
   scanPaths: (paths: string[]) => ipcRenderer.invoke('scan:paths', paths) as Promise<ImageListItem[]>,

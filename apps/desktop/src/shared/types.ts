@@ -165,6 +165,7 @@ export type WorkerResponse =
 declare global {
   interface Window {
     api: {
+      getPathForFile: (file: File) => string;
       selectFolder: () => Promise<string | null>;
       selectFiles: () => Promise<string[]>;
       scanPaths: (paths: string[]) => Promise<ImageListItem[]>;

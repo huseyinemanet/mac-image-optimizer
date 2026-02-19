@@ -10,10 +10,10 @@ interface DropZoneProps {
 export function DropZone({ onDrop, onDragEnter, onDragLeave, isDragActive }: DropZoneProps): JSX.Element {
   return (
     <div
-      onDragEnter={onDragEnter}
-      onDragLeave={onDragLeave}
+      onDragEnter={(e) => { console.log('[DropZone] onDragEnter'); onDragEnter(e); }}
+      onDragLeave={(e) => { console.log('[DropZone] onDragLeave'); onDragLeave(e); }}
       onDragOver={(event) => event.preventDefault()}
-      onDrop={onDrop}
+      onDrop={(e) => { console.log('[DropZone] onDrop'); onDrop(e); }}
       className="grid h-full place-items-center rounded-lg transition-colors"
       style={{
         border: `1.5px dashed ${isDragActive ? 'var(--macos-accent)' : 'var(--macos-separator)'}`,

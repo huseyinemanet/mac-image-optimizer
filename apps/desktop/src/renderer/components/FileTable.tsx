@@ -122,6 +122,11 @@ export function FileTable({ rows, selected, onSelect, onContextMenu, setSelected
     const isTargetHeader = (e.target as HTMLElement).closest('.tr-header');
     if (isTargetHeader) return;
 
+    const isTargetRow = (e.target as HTMLElement).closest('.tr-row');
+    if (!isTargetRow && !e.metaKey && !e.shiftKey) {
+      setSelected(new Set());
+    }
+
     selectionAtStart.current = new Set(e.metaKey || e.shiftKey ? selected : []);
     startPos.current = { x: e.clientX, y: e.clientY };
     lassoOccurred.current = false;

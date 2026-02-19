@@ -36,7 +36,7 @@ function SelectRow({ label, value, options, onChange }: { label: string; value: 
     <div className="settings-row">
       <span className="settings-row-label">{label}</span>
       <div className="settings-row-control">
-        <select className="macos-select" value={value} onChange={(e) => onChange(e.target.value)}>
+        <select className="macos-select-mode" value={value} onChange={(e) => onChange(e.target.value)}>
           {options.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
