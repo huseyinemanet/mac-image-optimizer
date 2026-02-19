@@ -176,10 +176,13 @@ export function registerIpcHandlers(
 	// ── Notifications ──
 
 	ipcMain.handle('notification:show', (_event, payload: { title: string; body?: string; silent?: boolean }) => {
+		const iconPath = path.join(app.getAppPath(), 'resources', 'icon.png');
 		const notification = new Notification({
-			title: payload.title,
+			title: 'Crunch',
+			subtitle: payload.title,
 			body: payload.body,
 			silent: payload.silent,
+			icon: iconPath,
 		});
 		notification.show();
 	});

@@ -7,6 +7,12 @@ import { registerIpcHandlers } from './ipcHandlers';
 
 const log = new Logger('Main');
 
+app.setName('Crunch');
+process.title = 'Crunch';
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.crunch.app');
+}
+
 let mainWindow: BrowserWindow | null = null;
 let watchService: WatchFolderService | null = null;
 let clipboardWatcher: ClipboardWatcherService | null = null;
@@ -54,6 +60,9 @@ registerIpcHandlers(
 );
 
 app.whenReady().then(async () => {
+  if (process.platform === 'darwin') {
+    app.dock?.setIcon(path.join(app.getAppPath(), 'resources', 'icon.png'));
+  }
   createWindow();
 
   Logger.setListener((level, context, message, ...args) => {
