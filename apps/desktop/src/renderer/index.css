@@ -152,7 +152,6 @@ body {
   font-size: 13px;
   font-weight: 400;
   cursor: default;
-  transition: background 0.08s;
   text-align: left;
   -webkit-app-region: no-drag;
 }
@@ -240,7 +239,6 @@ body {
   border-radius: 8px;
   flex-shrink: 0;
   width: 100%;
-  transition: background 0.06s;
 }
 
 .td-cell {
@@ -356,7 +354,6 @@ label {
   background: transparent;
   color: var(--macos-text);
   cursor: pointer;
-  transition: background 0.12s;
 }
 
 .macos-icon-btn:hover {
@@ -387,7 +384,6 @@ label {
     0 0 0 0.5px rgba(0, 0, 0, 0.04);
   cursor: default;
   outline: none;
-  transition: border-color 0.12s, box-shadow 0.12s;
 }
 
 .macos-select:focus {
@@ -405,7 +401,6 @@ label {
   border-radius: var(--macos-radius-sm);
   padding: 4px 14px;
   cursor: default;
-  transition: all 0.1s;
   outline: none;
   border: 0.5px solid var(--macos-separator);
   background: linear-gradient(180deg, var(--macos-btn-bg-start) 0%, var(--macos-btn-bg-end) 100%);
@@ -443,7 +438,6 @@ label {
   box-shadow:
     0 0.5px 2px rgba(0, 0, 0, 0.15),
     inset 0 0.5px 0 rgba(255, 255, 255, 0.2);
-  transition: background 0.1s, box-shadow 0.1s;
 }
 
 .macos-btn-primary:hover {
@@ -481,7 +475,6 @@ label {
   inset: 0;
   background: var(--macos-toggle-track);
   border-radius: 16px;
-  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.06);
 }
 
@@ -501,8 +494,6 @@ label {
     0 2px 4px rgba(0, 0, 0, 0.15),
     0 1px 2px rgba(0, 0, 0, 0.1),
     0 0 0 0.5px rgba(0, 0, 0, 0.04);
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-    width 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
 }
 
@@ -533,7 +524,6 @@ label {
   background: transparent;
   color: var(--macos-text);
   cursor: default;
-  transition: all 0.12s;
   outline: none;
 }
 
@@ -577,7 +567,6 @@ label {
   border: none;
   background: transparent;
   cursor: default;
-  transition: background 0.06s, color 0.06s;
 }
 
 .context-item:hover,
@@ -604,7 +593,6 @@ label {
   height: 100%;
   background: var(--macos-accent);
   border-radius: 2px;
-  transition: width 0.2s ease;
 }
 
 /* ── Range Slider (macOS native style) ──────────────────────────── */
@@ -620,7 +608,6 @@ input[type='range'] {
       rgba(0, 0, 0, 0.1) var(--fill, 50%),
       rgba(0, 0, 0, 0.1) 100%);
   outline: none;
-  transition: background 0.1s;
 }
 
 input[type='range']::-webkit-slider-thumb {
@@ -636,7 +623,6 @@ input[type='range']::-webkit-slider-thumb {
     0 1px 3px rgba(0, 0, 0, 0.18),
     0 0 0 0.5px rgba(0, 0, 0, 0.04);
   margin-top: -6.5px;
-  transition: box-shadow 0.12s;
 }
 
 input[type='range']::-webkit-slider-thumb:hover {
@@ -782,7 +768,6 @@ input[type='range']::-moz-range-track {
   align-items: center;
   justify-content: center;
   cursor: default;
-  transition: background 0.12s;
   line-height: 1;
   padding: 0;
 }
@@ -958,7 +943,6 @@ input[type='range']::-moz-range-track {
   background: transparent;
   color: var(--macos-text);
   cursor: default;
-  transition: all 0.15s ease;
   outline: none;
   opacity: 0.65;
 }
@@ -1168,7 +1152,6 @@ input[type='range']::-moz-range-track {
   border-radius: 8px;
   padding: 8px 32px;
   cursor: default;
-  transition: all 0.1s;
   outline: none;
   border: 0.5px solid var(--macos-separator);
   background: linear-gradient(180deg, var(--macos-btn-bg-start) 0%, var(--macos-btn-bg-end) 100%);

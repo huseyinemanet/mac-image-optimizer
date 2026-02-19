@@ -66,6 +66,7 @@
       "target": [
         "dmg"
       ],
+      "icon": "resources/icon.icns",
       "identity": null,
       "category": "public.app-category.graphics-design"
     },
@@ -83,6 +84,7 @@
           "path": "/Applications"
         }
       ]
-    }
+    },
+    "afterPack": "./scripts/prune-locales.js"
   }
 }

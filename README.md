@@ -1,5 +1,8 @@
 <p align="center">
-  <h1 align="center">🍎 Crunch</h1>
+  <h1 align="center">🍪 Crunch</h1>
+  <p align="center">
+    <img src="assets/icon.png" width="128" height="128" />
+  </p>
   <p align="center">
     <strong>Blazing-fast, 100% local image optimizer built for macOS.</strong>
   </p>
