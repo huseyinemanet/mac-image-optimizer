@@ -1,13 +1,13 @@
 <p align="center">
   <h1 align="center">🍪 Crunch</h1>
   <p align="center">
-    <img src="assets/icon.png" width="128" height="128" />
+    <img src="apps/desktop/resources/icon.png" width="128" height="128" />
   </p>
   <p align="center">
     <strong>Blazing-fast, 100% local image optimizer built for macOS.</strong>
   </p>
   <p align="center">
-    Compress JPEG · Crush PNG · Convert to WebP — all without leaving your Mac.
+    Compress JPEG · Crush PNG · Convert to WebP · Strip Metadata — all without leaving your Mac.
   </p>
 </p>
 
@@ -17,15 +17,16 @@
 
 | Feature | Details |
 |---|---|
-| **Smart Compression** | MozJPEG, pngquant, oxipng & cwebp — the best open-source tools in one pipeline |
-| **WebP Conversion** | Batch-convert any image to WebP with configurable quality presets |
-| **SSIM Quality Guard** | Automatic visual-fidelity check (default ≥ 0.99) prevents over-compression |
-| **Watch Folders** | Pick any directory and Crunch optimizes new files the moment they appear |
-| **Clipboard Support** | Copy a screenshot → Crunch grabs and optimizes it instantly |
-| **Drag & Drop** | Drop files or entire folders onto the window to start optimizing |
-| **macOS-Native UI** | Dark mode, system-style toggles, sliders, tabs — feels right at home |
-| **Non-Destructive** | Originals stay untouched; optimized copies land in an `Optimized/` subfolder |
-| **Apple Silicon Ready** | Multi-threaded worker pool that scales with your CPU cores |
+| **Smart Compression** | MozJPEG, pngquant, oxipng & cwebp — the best open-source tools in one pipeline. Uses SSIM.js to achieve visually lossless compression dynamically. |
+| **Responsive Image Generator** | Generate perfectly sized derivatives with WebP fallbacks. Automagically creates copy-pastable `<picture>`/`<img>` HTML snippets and JSON manifests. |
+| **Metadata & Privacy Cleanup** | Safely scrub invisible junk (EXIF, XMP, IPTC, GPS) from your files. Configurable presets for web-safe delivery or keeping copyright info, with explicit ICC profile control. |
+| **WebP Conversion** | Batch-convert any image to WebP with configurable quality presets or aggressive replace modes. |
+| **SSIM Quality Guard** | Automatic visual-fidelity check (default ≥ 0.99) prevents over-compression. |
+| **Watch Folders** | Pick any directory and Crunch optimizes new files the moment they appear. |
+| **Clipboard Support** | Copy a screenshot → Crunch grabs and optimizes it instantly. |
+| **macOS-Native UI** | Dark mode, system-style toggles, sliders, tabs — feels right at home. |
+| **Non-Destructive** | Originals stay untouched; optimized copies land in an `Optimized/` subfolder (unless configured otherwise). |
+| **Apple Silicon Ready** | Multi-threaded worker pool that scales with your CPU cores. |
 
 ## 🖥 Screenshots
 
@@ -48,14 +49,13 @@ crunch/
 ├── apps/desktop/
 │   ├── src/
 │   │   ├── main/               # Electron main process
-│   │   │   ├── optimizer/      # Compression pipeline & tools
+│   │   │   ├── optimizer/      # Compression pipeline, tools & metadata
 │   │   │   ├── watch/          # Folder-watch service
 │   │   │   └── clipboardWatcher.ts
-│   │   ├── renderer/           # React front-end
-│   │   │   ├── components/     # UI components
-│   │   │   ├── hooks/          # Custom React hooks
-│   │   │   └── utils/          # Formatting helpers
-│   │   └── shared/             # Shared types
+│   │   ├── renderer/           # React front-end (Zustand + React 19)
+│   │   │   ├── components/     # UI components (Settings, FileTable, ResponsiveMode)
+│   │   │   └── hooks/          # Custom React hooks
+│   │   └── shared/             # Shared IPC types
 │   └── resources/
 │       ├── bin/                # Bundled native binaries
 │       └── lib/                # Shared dynamic libraries
@@ -98,6 +98,7 @@ The `.dmg` file will be in `apps/desktop/release/`.
 
 ## 🔒 Safety & Privacy
 
+- **Metadata Cleanup** — Strip unnecessary bytes and identifiable GPS locations from your images securely.
 - **Non-Destructive** — Originals are never modified; results go to an `Optimized/` subfolder.
 - **Atomic Writes** — Temp files + atomic rename prevent corruption.
 - **100% Offline** — Zero cloud calls. Your images never leave your Mac.
