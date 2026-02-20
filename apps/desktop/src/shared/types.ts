@@ -351,6 +351,7 @@ declare global {
       onActionOptimize: (cb: (paths: string[]) => void) => () => void;
       onActionConvert: (cb: (paths: string[]) => void) => () => void;
       onActionReveal: (cb: (paths: string[]) => void) => () => void;
+      onOpenSettings: (cb: () => void) => () => void;
       onLog?: (cb: (payload: { level: string; context: string; message: string; args: any[] }) => void) => () => void;
     };
   }

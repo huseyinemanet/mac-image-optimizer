@@ -10,9 +10,6 @@ interface UseOptimizationRunProps {
 		beforeBytes: number;
 		afterBytes?: number;
 		reason?: string;
-		metadataAction?: 'Removed' | 'Kept' | 'Partial';
-		iccAction?: 'Converted to sRGB' | 'Kept' | 'Stripped';
-		gpsAction?: 'Removed' | 'Not present';
 	}>>>;
 	refreshRestoreAvailability: () => void;
 }
@@ -25,68 +22,65 @@ export function useOptimizationRun({ files, settings, setRowRuntime, refreshRest
 	const [runBeforeBytes, setRunBeforeBytes] = useState(0);
 
 	useEffect(() => {
-		const unsub = window.api.onProgress((event) => {
-			if (event.file) {
-				const file = event.file;
-				setRowRuntime((prev) => ({
-					...prev,
-					[file.path]: {
-						status: file.status,
-						beforeBytes: file.beforeBytes,
-						afterBytes: file.afterBytes > 0 ? file.afterBytes : undefined,
-						reason: file.message,
-						metadataAction: file.metadataAction,
-						iccAction: file.iccAction,
-						gpsAction: file.gpsAction
-					}
-				}));
-			}
+		const unsubUpdated = (window.api as any).onJobUpdated((event: any) => {
+			if (!event.inputPath) return;
 
-			setProgress({
-				done: event.overall.done,
-				total: event.overall.total,
-				savedBytes: event.overall.savedBytes
+			setRowRuntime((prev) => {
+				const current = prev[event.inputPath] || { beforeBytes: 0, status: 'Ready' };
+
+				// Map status
+				let status: FileStatus = 'Ready';
+				if (event.status === 'running') status = 'Processing';
+				if (event.status === 'success') status = 'Done';
+				if (event.status === 'failed') status = 'Failed';
+				if (event.status === 'cancelled') status = 'Cancelled';
+				if (event.status === 'skipped') status = 'Skipped';
+
+				const next = {
+					...current,
+					status,
+					beforeBytes: event.result?.originalBytes || current.beforeBytes,
+					afterBytes: event.result?.outputBytes || current.afterBytes,
+					reason: event.result?.error?.message || event.progress?.stage || current.reason
+				};
+
+				return { ...prev, [event.inputPath]: next };
 			});
 
-			if (event.finished) {
-				setBusy(false);
-				setActiveRunId(null);
-				if (event.summary) {
-					setSummary(event.summary);
-					const savedBytes = event.summary.totalSavedBytes;
-					const totalCount = event.summary.totalFiles;
-					const doneCount = event.summary.processedFiles;
-					const skippedCount = event.summary.skippedFiles;
-					const failedCount = event.summary.failedFiles;
-					const elapsed = formatElapsed(event.summary.elapsedMs);
-					const percentSaved = event.summary.totalOriginalBytes > 0 ? Math.round((savedBytes / event.summary.totalOriginalBytes) * 100) : 0;
-
-					if (failedCount > 0) {
-						void window.api.notify('Completed with issues', `${failedCount} failed • Saved ${formatBytes(savedBytes)} (${percentSaved}%) in ${elapsed}`);
-					} else if (savedBytes > 0) {
-						void window.api.notify('Success', `Saved ${formatBytes(savedBytes)} (${percentSaved}%) in ${elapsed}`);
-					} else if (savedBytes === 0 && skippedCount === totalCount) {
-						void window.api.notify('No savings (all skipped)', `Skipped ${skippedCount} files`);
-					} else {
-						void window.api.notify('Completed (no savings)', `${doneCount} processed in ${elapsed}`);
-					}
-				}
-				void refreshRestoreAvailability();
+			if (event.status === 'success' || event.status === 'failed' || event.status === 'skipped') {
+				setProgress((prev) => ({
+					...prev,
+					done: prev.done + 1,
+					savedBytes: prev.savedBytes + (event.result?.bytesSaved || 0)
+				}));
 			}
 		});
 
-		return () => unsub();
+		const unsubFinished = (window.api as any).onJobFinished((event: RunSummary) => {
+			setBusy(false);
+			setActiveRunId(null);
+			setSummary(event);
+
+			const elapsed = formatElapsed(event.elapsedMs);
+			const savedBytes = event.totalSavedBytes;
+
+			if (event.failedFiles > 0) {
+				void window.api.notify('Completed with issues', `${event.failedFiles} failed • Saved ${formatBytes(savedBytes)} in ${elapsed}`);
+			} else {
+				void window.api.notify('Success', `Saved ${formatBytes(savedBytes)} in ${elapsed}`);
+			}
+
+			void refreshRestoreAvailability();
+		});
+
+		return () => {
+			unsubUpdated();
+			unsubFinished();
+		};
 	}, [setRowRuntime, refreshRestoreAvailability]);
 
 	const run = async (runMode: RunMode, paths: string[]) => {
-		if (busy || paths.length === 0) {
-			return;
-		}
-
-		if (settings.replaceWithWebp && !settings.confirmDangerousWebpReplace) {
-			void window.api.notify('Settings required', 'Confirm dangerous replace in settings first.');
-			return;
-		}
+		if (busy || paths.length === 0) return;
 
 		setBusy(true);
 		setSummary(null);
@@ -96,6 +90,8 @@ export function useOptimizationRun({ files, settings, setRowRuntime, refreshRest
 				return sum + (file?.size ?? 0);
 			}, 0)
 		);
+
+		setProgress({ done: 0, total: paths.length, savedBytes: 0 });
 		const { runId } = await window.api.startRun({ paths, mode: runMode, settings });
 		setActiveRunId(runId);
 	};

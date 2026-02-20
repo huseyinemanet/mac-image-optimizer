@@ -13,6 +13,7 @@ import type {
   WatchFolderStatus,
   WatchFolderSettings,
 } from '../shared/types';
+import type { JobUpdatePayload } from '../shared/ipcEvents';
 
 /** Creates a typed IPC event listener with proper cleanup. */
 function createListener<T>(channel: string) {
@@ -40,6 +41,8 @@ contextBridge.exposeInMainWorld('api', {
   startRun: (payload: StartRunPayload) => ipcRenderer.invoke('run:start', payload) as Promise<StartRunResult>,
   cancelRun: (runId: string) => ipcRenderer.invoke('run:cancel', runId) as Promise<void>,
   onProgress: createListener<RunProgressEvent>('run:progress'),
+  onJobUpdated: createListener<JobUpdatePayload>('job:updated'),
+  onJobFinished: createListener<any>('job:finished'),
 
   // ── Restore ──
   restoreLastRun: () =>
@@ -84,5 +87,6 @@ contextBridge.exposeInMainWorld('api', {
   onActionOptimize: createListener<string[]>('menu:action-optimize'),
   onActionConvert: createListener<string[]>('menu:action-convert'),
   onActionReveal: createListener<string[]>('menu:action-reveal'),
+  onOpenSettings: createListener<void>('menu:open-settings'),
   getPreview: (path: string, settings: OptimiseSettings) => ipcRenderer.invoke('optimise:preview', path, settings) as Promise<PreviewResult>,
 });

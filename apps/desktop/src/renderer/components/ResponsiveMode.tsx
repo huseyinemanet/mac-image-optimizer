@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import type { OptimiseSettings, ResponsiveSettings, ExportPreset } from '../../shared/types';
 import { IconAdd } from './Icons';
 
@@ -27,6 +28,7 @@ export function ResponsiveMode({ settings, onChange, onRun, busy, fileCount }: R
 	const rSettings = settings.responsiveSettings;
 	const [customWidths, setCustomWidths] = useState(rSettings.widths.join(', '));
 	const [selectedPreset, setSelectedPreset] = useState('Web Standard');
+	const [headerScrolled, setHeaderScrolled] = useState(false);
 
 	const updateResponsive = (patch: Partial<ResponsiveSettings>) => {
 		onChange({
@@ -62,24 +64,27 @@ export function ResponsiveMode({ settings, onChange, onRun, busy, fileCount }: R
 	};
 
 	return (
-		<div className="flex flex-col h-full overflow-hidden" style={{ background: 'var(--macos-content-bg)' }}>
-			<header className="flex justify-between items-center mb-6 shrink-0">
+		<div className="responsive-mode flex flex-col h-full" style={{ background: 'var(--macos-content-bg)' }}>
+			<header className={`mode-sticky-header flex justify-between items-center shrink-0 ${headerScrolled ? 'is-scrolled' : ''}`}>
 				<div>
 					<h1 className="text-2xl font-bold tracking-tight">Responsive Image Generator</h1>
 					<p className="text-sm text-[var(--macos-secondary)]">Generate multiple widths and formats for better web performance.</p>
 				</div>
 			</header>
 
-			<div className="flex-1 overflow-y-auto min-h-0 pb-8 pr-2">
+			<div
+				className="mode-scroll flex-1 overflow-y-auto min-h-0 pb-8"
+				onScroll={(e) => setHeaderScrolled(e.currentTarget.scrollTop > 4)}
+			>
 				<div className="flex flex-col gap-4">
 					<section className="bg-[var(--macos-surface-raised)] border border-[var(--macos-separator)] rounded-xl p-4 shadow-sm space-y-4">
 						<h2 className="text-[11px] font-bold uppercase tracking-wider text-[var(--macos-secondary)]">Configuration</h2>
 
 						<div className="space-y-4">
-							<div className="flex flex-col space-y-1.5">
-								<span className="text-sm font-medium">Mode</span>
+							<div className="responsive-option-row">
+								<span className="responsive-option-label">Mode</span>
 								<select
-									className="macos-select macos-select-mode text-xs w-full"
+									className="macos-select macos-select-mode responsive-option-select"
 									value={rSettings.mode}
 									onChange={(e) => updateResponsive({ mode: e.target.value as any })}
 								>
@@ -87,13 +92,14 @@ export function ResponsiveMode({ settings, onChange, onRun, busy, fileCount }: R
 									<option value="dpr">DPR-based (1x/2x/3x)</option>
 								</select>
 							</div>
+							<div className="responsive-option-divider" />
 
 							{rSettings.mode === 'width' ? (
 								<>
-									<div className="flex flex-col space-y-1.5">
-										<span className="text-sm font-medium">Width Preset</span>
+									<div className="responsive-option-row">
+										<span className="responsive-option-label">Width Preset</span>
 										<select
-											className="macos-select macos-select-mode text-xs w-full"
+											className="macos-select macos-select-mode responsive-option-select"
 											value={selectedPreset}
 											onChange={(e) => handlePresetChange(e.target.value)}
 										>
@@ -101,9 +107,10 @@ export function ResponsiveMode({ settings, onChange, onRun, busy, fileCount }: R
 											<option value="Custom">Custom Widths</option>
 										</select>
 									</div>
+									<div className="responsive-option-divider" />
 
 									<div className="flex flex-col space-y-1.5">
-										<span className="text-sm font-medium">Custom Widths (comma separated)</span>
+										<span className="text-[13px] font-medium">Custom Widths (comma separated)</span>
 										<input
 											type="text"
 											className="macos-input text-xs w-full"
@@ -115,7 +122,7 @@ export function ResponsiveMode({ settings, onChange, onRun, busy, fileCount }: R
 								</>
 							) : (
 								<div className="flex flex-col space-y-1.5">
-									<span className="text-sm font-medium">Base CSS Width (px)</span>
+									<span className="text-[13px] font-medium">Base CSS Width (px)</span>
 									<input
 										type="number"
 										className="macos-input text-xs w-full"
@@ -131,10 +138,10 @@ export function ResponsiveMode({ settings, onChange, onRun, busy, fileCount }: R
 						<h2 className="text-[11px] font-bold uppercase tracking-wider text-[var(--macos-secondary)]">Output Policy</h2>
 
 						<div className="space-y-4">
-							<div className="flex flex-col space-y-1.5">
-								<span className="text-sm font-medium">Format Strategy</span>
+							<div className="responsive-option-row">
+								<span className="responsive-option-label">Format Strategy</span>
 								<select
-									className="macos-select macos-select-mode text-xs w-full"
+									className="macos-select macos-select-mode responsive-option-select"
 									value={rSettings.formatPolicy}
 									onChange={(e) => updateResponsive({ formatPolicy: e.target.value as any })}
 								>
@@ -143,11 +150,12 @@ export function ResponsiveMode({ settings, onChange, onRun, busy, fileCount }: R
 									<option value="webp-only">WebP Only (Warning: No legacy support)</option>
 								</select>
 							</div>
+							<div className="responsive-option-divider" />
 
-							<div className="flex flex-col space-y-1.5">
-								<span className="text-sm font-medium">Optimisation Preset</span>
+							<div className="responsive-option-row">
+								<span className="responsive-option-label">Optimisation Preset</span>
 								<select
-									className="macos-select macos-select-mode text-xs w-full"
+									className="macos-select macos-select-mode responsive-option-select"
 									value={rSettings.optimizationPreset}
 									onChange={(e) => updateResponsive({ optimizationPreset: e.target.value as ExportPreset })}
 								>
@@ -159,7 +167,7 @@ export function ResponsiveMode({ settings, onChange, onRun, busy, fileCount }: R
 
 							<div className="pt-2 space-y-3 border-t border-[var(--macos-separator)] mt-4">
 								<div className="flex items-center justify-between">
-									<span className="text-sm font-medium text-[var(--macos-text)]">Allow upscaling</span>
+									<span className="text-[13px] font-medium text-[var(--macos-text)]">Allow upscaling</span>
 									<label className="macos-toggle">
 										<input
 											type="checkbox"
@@ -167,12 +175,17 @@ export function ResponsiveMode({ settings, onChange, onRun, busy, fileCount }: R
 											onChange={(e) => updateResponsive({ allowUpscale: e.target.checked })}
 										/>
 										<div className="toggle-track"></div>
-										<div className="toggle-thumb"></div>
+										<motion.span
+											className="toggle-thumb"
+											initial={false}
+											animate={{ x: rSettings.allowUpscale ? 11 : 0 }}
+											transition={{ type: 'spring', stiffness: 720, damping: 42, mass: 0.22 }}
+										/>
 									</label>
 								</div>
 
 								<div className="flex items-center justify-between">
-									<span className="text-sm font-medium text-[var(--macos-text)]">Include original width</span>
+									<span className="text-[13px] font-medium text-[var(--macos-text)]">Include original width</span>
 									<label className="macos-toggle">
 										<input
 											type="checkbox"
@@ -180,7 +193,12 @@ export function ResponsiveMode({ settings, onChange, onRun, busy, fileCount }: R
 											onChange={(e) => updateResponsive({ includeOriginal: e.target.checked })}
 										/>
 										<div className="toggle-track"></div>
-										<div className="toggle-thumb"></div>
+										<motion.span
+											className="toggle-thumb"
+											initial={false}
+											animate={{ x: rSettings.includeOriginal ? 11 : 0 }}
+											transition={{ type: 'spring', stiffness: 720, damping: 42, mass: 0.22 }}
+										/>
 									</label>
 								</div>
 							</div>
@@ -192,10 +210,10 @@ export function ResponsiveMode({ settings, onChange, onRun, busy, fileCount }: R
 					<section className="mt-4 bg-[var(--macos-surface-raised)] border border-[var(--macos-separator)] rounded-xl p-4 shadow-sm space-y-4">
 						<h2 className="text-[11px] font-bold uppercase tracking-wider text-[var(--macos-secondary)]">HTML Snippet Options</h2>
 						<div className="flex flex-col gap-4">
-							<div className="flex flex-col space-y-1.5">
-								<span className="text-sm font-medium">Sizes Template</span>
+							<div className="responsive-option-row">
+								<span className="responsive-option-label">Sizes Template</span>
 								<select
-									className="macos-select macos-select-mode text-xs w-full"
+									className="macos-select macos-select-mode responsive-option-select"
 									value={rSettings.sizesTemplate}
 									onChange={(e) => handleTemplateChange(e.target.value)}
 								>
@@ -205,9 +223,10 @@ export function ResponsiveMode({ settings, onChange, onRun, busy, fileCount }: R
 									<option value="custom">Custom Sizes...</option>
 								</select>
 							</div>
+							<div className="responsive-option-divider" />
 
 							<div className="flex flex-col space-y-1.5">
-								<span className="text-sm font-medium">Sizes Attribute</span>
+								<span className="text-[13px] font-medium">Sizes Attribute</span>
 								<input
 									type="text"
 									className="macos-input text-xs w-full"
@@ -221,15 +240,14 @@ export function ResponsiveMode({ settings, onChange, onRun, busy, fileCount }: R
 				)}
 			</div>
 
-			<div className="pt-4 mt-auto border-t border-[var(--macos-separator)] flex items-center justify-between shrink-0">
+			<div className="pt-4 px-4 pb-4 mt-auto border-t border-[var(--macos-separator)] flex items-center justify-between shrink-0">
 				<div className="text-sm text-[var(--macos-secondary)] font-medium">
 					{fileCount === 0 ? 'No images added' : `${fileCount} image${fileCount > 1 ? 's' : ''} queued`}
 				</div>
 				<button
 					onClick={onRun}
 					disabled={busy || fileCount === 0}
-					className={`macos-btn-primary h-8 px-6 flex items-center justify-center space-x-2 transition-all ${busy || fileCount === 0 ? 'opacity-50' : ''
-						}`}
+					className="macos-btn-primary px-6"
 				>
 					{busy ? (
 						<>

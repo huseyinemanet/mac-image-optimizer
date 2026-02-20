@@ -1,5 +1,6 @@
 import React from 'react';
 import type { DragEventHandler } from 'react';
+import { motion } from 'motion/react';
 
 interface DropZoneProps {
   onDrop: DragEventHandler<HTMLDivElement>;
@@ -76,17 +77,17 @@ export function DropZone({ onDrop, onDragEnter, onDragLeave, isDragActive }: Dro
             </defs>
           </svg>
         </div>
-        <h2
-          className="mx-auto"
-          style={{
-            fontFamily: "'SF Pro', var(--macos-font)",
-            fontWeight: 590,
-            fontSize: '20px',
-            lineHeight: '25px',
-            color: 'rgba(60, 60, 67, 0.6)',
-          }}
-        >
-          Drop a folder or images here
+        <h2 className="dropzone-shine-message mx-auto" aria-label="Drop a folder or images here">
+          <span className="dropzone-shine-message-base">Drop a folder or images here</span>
+          <motion.span
+            className="dropzone-shine-message-shine"
+            initial={{ backgroundPosition: '220% 0%' }}
+            animate={{ backgroundPosition: ['220% 0%', '-180% 0%'] }}
+            transition={{ duration: 2.2, ease: 'linear', repeat: Infinity, repeatDelay: 0.6 }}
+            aria-hidden="true"
+          >
+            Drop a folder or images here
+          </motion.span>
         </h2>
       </div>
     </div>

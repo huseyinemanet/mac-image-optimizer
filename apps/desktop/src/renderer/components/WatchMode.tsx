@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { motion } from 'motion/react';
 import type { WatchFolderStatus, WatchFolderSettings, WatchFileDetectedEvent, WatchFileOptimizedEvent, WatchTriggerBehavior } from '@/shared/types';
 import { formatBytes } from '../utils/format';
 import { IconAdd, IconWatch } from './Icons';
@@ -19,6 +20,7 @@ export function WatchMode(): React.JSX.Element {
 	const [events, setEvents] = useState<WatchEvent[]>([]);
 	const [counters, setCounters] = useState({ processed: 0, skipped: 0, failed: 0 });
 	const [globalSettings, setGlobalSettings] = useState<WatchFolderSettings | null>(null);
+	const [headerScrolled, setHeaderScrolled] = useState(false);
 
 	useEffect(() => {
 		const init = async () => {
@@ -110,8 +112,8 @@ export function WatchMode(): React.JSX.Element {
 	};
 
 	return (
-		<div className="watch-mode flex flex-col h-full overflow-hidden" style={{ background: 'var(--macos-content-bg)' }}>
-			<header className="flex justify-between items-center mb-6 shrink-0">
+		<div className="watch-mode flex flex-col h-full" style={{ background: 'var(--macos-content-bg)' }}>
+			<header className={`mode-sticky-header flex justify-between items-center shrink-0 ${headerScrolled ? 'is-scrolled' : ''}`}>
 				<div>
 					<h1 className="text-2xl font-bold tracking-tight">Folder Watch</h1>
 					<p className="text-sm text-[var(--macos-secondary)]">Automated optimization for your workflow</p>
@@ -120,10 +122,7 @@ export function WatchMode(): React.JSX.Element {
 					<button
 						type="button"
 						onClick={handleToggleGlobal}
-						className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all shadow-sm ${globalSettings?.watchEnabled
-							? 'bg-[var(--macos-accent)] text-white shadow-[0_2px_10px_rgba(0,122,255,0.3)]'
-							: 'bg-[var(--macos-secondary)]/20 text-[var(--macos-text)]/60'
-							}`}
+						className="macos-btn-primary px-6"
 					>
 						{globalSettings?.watchEnabled ? 'Watching Active' : 'Watching Paused'}
 					</button>
@@ -137,7 +136,10 @@ export function WatchMode(): React.JSX.Element {
 				</div>
 			</header>
 
-			<div className="flex-1 overflow-y-auto min-h-0 pb-8 pr-2">
+			<div
+				className="mode-scroll flex-1 overflow-y-auto min-h-0 pb-8"
+				onScroll={(e) => setHeaderScrolled(e.currentTarget.scrollTop > 4)}
+			>
 				<div className="flex flex-col gap-4 max-w-5xl mx-auto w-full">
 					{/* Watched Folders Section */}
 					<section className="bg-[var(--macos-surface-raised)] border border-[var(--macos-separator)] rounded-xl p-4 shadow-sm space-y-4">
@@ -167,7 +169,12 @@ export function WatchMode(): React.JSX.Element {
 													onChange={(e) => handleToggleFolder(folder.path, e.target.checked)}
 												/>
 												<div className="toggle-track"></div>
-												<div className="toggle-thumb"></div>
+												<motion.span
+													className="toggle-thumb"
+													initial={false}
+													animate={{ x: folder.enabled ? 11 : 0 }}
+													transition={{ type: 'spring', stiffness: 720, damping: 42, mass: 0.22 }}
+												/>
 											</label>
 											<button
 												onClick={() => handleRemoveFolder(folder.path)}
@@ -188,7 +195,7 @@ export function WatchMode(): React.JSX.Element {
 
 						<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 							<div className="flex flex-col space-y-1.5">
-								<span className="text-sm font-medium">Trigger</span>
+								<span className="text-[13px] font-medium">Trigger</span>
 								<select
 									className="macos-select macos-select-mode text-xs w-full"
 									value={globalSettings?.triggerBehavior}
@@ -200,7 +207,7 @@ export function WatchMode(): React.JSX.Element {
 							</div>
 
 							<div className="flex flex-col space-y-1.5">
-								<span className="text-sm font-medium">Stability wait (sec)</span>
+								<span className="text-[13px] font-medium">Stability wait (sec)</span>
 								<input
 									type="number"
 									className="macos-input text-xs w-full"
@@ -210,7 +217,7 @@ export function WatchMode(): React.JSX.Element {
 							</div>
 
 							<div className="flex flex-col space-y-1.5">
-								<span className="text-sm font-medium">Size limit (MB)</span>
+								<span className="text-[13px] font-medium">Size limit (MB)</span>
 								<input
 									type="number"
 									className="macos-input text-xs w-full"
@@ -238,7 +245,7 @@ export function WatchMode(): React.JSX.Element {
 
 					{/* Live Feed Section */}
 					<section className="bg-[var(--macos-surface-raised)] border border-[var(--macos-separator)] rounded-xl shadow-sm flex flex-col overflow-hidden">
-						<div className="flex justify-between items-center p-4 border-b border-[var(--macos-separator)] bg-[var(--macos-content-bg)]/20">
+						<div className="watch-live-feed-header flex justify-between items-center p-4 bg-[var(--macos-content-bg)]/20">
 							<h2 className="text-[11px] font-bold uppercase tracking-wider text-[var(--macos-secondary)]">Live Feed</h2>
 							<span className="live-badge">Live</span>
 						</div>
@@ -249,7 +256,18 @@ export function WatchMode(): React.JSX.Element {
 									<div className="w-12 h-12 bg-[var(--macos-secondary)]/10 rounded-full flex items-center justify-center">
 										<IconWatch className="w-6 h-6 opacity-30" />
 									</div>
-									<p className="text-sm italic">Waiting for images...</p>
+									<div className="watch-empty-message" aria-label="Waiting for images">
+										<span className="watch-empty-message-base">Waiting for images...</span>
+										<motion.span
+											className="watch-empty-message-shine"
+											initial={{ backgroundPosition: '220% 0%' }}
+											animate={{ backgroundPosition: ['220% 0%', '-180% 0%'] }}
+											transition={{ duration: 2.2, ease: 'linear', repeat: Infinity, repeatDelay: 0.6 }}
+											aria-hidden="true"
+										>
+											Waiting for images...
+										</motion.span>
+									</div>
 								</div>
 							) : (
 								<div className="flex flex-col">

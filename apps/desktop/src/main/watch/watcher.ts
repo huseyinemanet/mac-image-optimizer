@@ -37,6 +37,9 @@ const IGNORE_PATTERNS = [
   /Thumbs\.db$/i,
   /Desktop\.ini$/i,
   /\.DS_Store$/i,
+  // macOS media library bundles (cause EPERM)
+  /\.photoslibrary$/i,
+  /Photo Booth Library$/i,
   // Temp/partial patterns
   /\.tmp$/i,
   /\.part$/i,

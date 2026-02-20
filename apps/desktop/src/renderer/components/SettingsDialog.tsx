@@ -1,4 +1,5 @@
 import { Dialog, Disclosure, Transition } from '@headlessui/react';
+import { motion } from 'motion/react';
 import { Fragment, useState } from 'react';
 import type { OptimiseSettings, RunMode, MetadataCleanupPreset, MetadataCleanupSettings } from '@/shared/types';
 
@@ -24,7 +25,12 @@ function ToggleRow({ label, checked, onChange }: { label: string; checked: boole
         <label className="macos-toggle">
           <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
           <span className="toggle-track" />
-          <span className="toggle-thumb" />
+          <motion.span
+            className="toggle-thumb"
+            initial={false}
+            animate={{ x: checked ? 11 : 0 }}
+            transition={{ type: 'spring', stiffness: 720, damping: 42, mass: 0.22 }}
+          />
         </label>
       </div>
     </div>
@@ -55,15 +61,30 @@ function SliderRow({ label, value, min, max, hint, onChange }: { label: string; 
         <span className="settings-slider-label">{label}</span>
         <span className="settings-slider-value">{value}</span>
       </div>
-      <input
-        type="range"
-        className="settings-slider-track"
-        min={min}
-        max={max}
-        value={value}
-        style={{ '--fill': `${fill}%` } as React.CSSProperties}
-        onChange={(e) => onChange(Number(e.target.value))}
-      />
+      <div className="settings-slider-control">
+        <div className="settings-slider-visual" aria-hidden="true">
+          <motion.span
+            className="settings-slider-visual-fill"
+            initial={false}
+            animate={{ width: `${fill}%` }}
+            transition={{ type: 'spring', stiffness: 420, damping: 36, mass: 0.45 }}
+          />
+          <motion.span
+            className="settings-slider-visual-thumb"
+            initial={false}
+            animate={{ left: `${fill}%` }}
+            transition={{ type: 'spring', stiffness: 420, damping: 36, mass: 0.45 }}
+          />
+        </div>
+        <input
+          type="range"
+          className="settings-slider-track"
+          min={min}
+          max={max}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+        />
+      </div>
       {hint && <span className="settings-slider-hint">{hint}</span>}
     </div>
   );
@@ -430,7 +451,7 @@ export function SettingsDialog({ open, runMode, settings, onClose, onChange }: S
         </Transition.Child>
 
         <div className="fixed inset-0 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4">
+          <div className="flex min-h-full items-start justify-center p-4 pt-10">
             <Transition.Child as={Fragment} enter="ease-out duration-150" enterFrom="opacity-0 scale-95" enterTo="opacity-100 scale-100" leave="ease-in duration-100" leaveFrom="opacity-100 scale-100" leaveTo="opacity-0 scale-95">
               <Dialog.Panel className="macos-dialog w-full max-w-[480px]">
                 {/* ── Header ── */}
@@ -451,7 +472,14 @@ export function SettingsDialog({ open, runMode, settings, onClose, onChange }: S
                         className={activeTab === tab ? 'settings-tab-active' : ''}
                         onClick={() => setActiveTab(tab)}
                       >
-                        {tab}
+                        {activeTab === tab && (
+                          <motion.span
+                            layoutId="settings-active-tab-pill"
+                            className="settings-tab-indicator"
+                            transition={{ type: 'spring', stiffness: 520, damping: 38, mass: 0.55 }}
+                          />
+                        )}
+                        <span className="settings-tab-label">{tab}</span>
                       </button>
                     ))}
                   </div>

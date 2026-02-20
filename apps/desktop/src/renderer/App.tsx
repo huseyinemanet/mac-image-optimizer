@@ -137,11 +137,16 @@ export function AppShell(): React.JSX.Element {
       void window.api.revealInFileManager(paths);
     });
 
+    const offOpenSettings = window.api.onOpenSettings?.(() => {
+      setSettingsOpen(true);
+    });
+
     return () => {
       offRemove?.();
       offActionOpt?.();
       offActionConv?.();
       offActionRev?.();
+      offOpenSettings?.();
     };
   }, [removeFromList, run]);
 
@@ -288,7 +293,7 @@ export function AppShell(): React.JSX.Element {
         />
 
         <div
-          className="content-area"
+          className={`content-area ${(currentView === 'watch' || currentView === 'responsive') ? 'content-area--flush' : ''}`}
           onDragOver={onDragOver}
           onDragEnter={onDragEnter}
           onDragLeave={onDragLeave}
@@ -363,18 +368,21 @@ export function AppShell(): React.JSX.Element {
         </div>
 
         {previewFile && (
-          <PreviewPanel
-            originalPath={previewFile.path}
-            originalSize={previewFile.size}
-            originalBuffer={previewData?.originalBuffer}
-            optimizedBuffer={previewData?.buffer}
-            optimizedSize={previewData?.size}
-            params={previewData ? `Q: ${previewData.quality}, SSIM: ${previewData.ssim.toFixed(4)}` : (previewLoading ? 'Optimizing...' : '')}
-            onClose={() => {
-              setPreviewFile(null);
-              setPreviewData(null);
-            }}
-          />
+          <>
+            <div className="preview-backdrop" aria-hidden="true" />
+            <PreviewPanel
+              originalPath={previewFile.path}
+              originalSize={previewFile.size}
+              originalBuffer={previewData?.originalBuffer}
+              optimizedBuffer={previewData?.buffer}
+              optimizedSize={previewData?.size}
+              params={previewData ? `Q: ${previewData.quality}, SSIM: ${previewData.ssim.toFixed(4)}` : (previewLoading ? 'Optimizing...' : '')}
+              onClose={() => {
+                setPreviewFile(null);
+                setPreviewData(null);
+              }}
+            />
+          </>
         )}
 
         <SettingsDialog open={settingsOpen} runMode={mode} settings={settings} onClose={() => setSettingsOpen(false)} onChange={setSettings} />

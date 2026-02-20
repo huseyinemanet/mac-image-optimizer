@@ -64,7 +64,7 @@ export function BottomBar({
           type="button"
           onClick={onRun}
           disabled={!canRun || busy}
-          className="macos-btn-optimize"
+          className="macos-btn-primary"
         >
           {/* SVG code stays the same */}
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -129,7 +129,7 @@ export function BottomBar({
               </clipPath>
             </defs>
           </svg>
-          <span className="ml-1">{mode === 'convertWebp' ? 'Convert' : 'Optimize'}</span>
+          <span>{mode === 'convertWebp' ? 'Convert' : 'Optimize'}</span>
         </button>
       </div>
     </footer>

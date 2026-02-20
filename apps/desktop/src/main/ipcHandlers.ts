@@ -123,6 +123,7 @@ export function registerIpcHandlers(
 		log.info(`IPC: run:start received (paths: ${payload.paths.length})`);
 		getClipboardWatcher()?.configure(Boolean(payload.settings.optimizeClipboardImages), payload.settings);
 		const runId = createTimestamp();
+		// executeRun now expects (runId, payload, mainWindow, updateLastRunState)
 		void executeRun(runId, payload, getMainWindow(), writeLastRunState);
 		return { runId };
 	});

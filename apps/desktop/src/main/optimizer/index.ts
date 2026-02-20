@@ -1,7 +1,6 @@
 import path from 'node:path';
 import type { OutputMode } from '../../shared/types';
 
-export { processFile } from './pipeline';
 export { getJpegQualities, getWebpQualities, getPngQualityRanges, shouldSkipIfLarger } from './candidates';
 
 export function isSupportedImagePath(inputPath: string): boolean {

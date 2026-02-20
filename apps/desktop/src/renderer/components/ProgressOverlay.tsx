@@ -55,7 +55,7 @@ export const ProgressOverlay: FC<ProgressOverlayProps> = ({
 					<button
 						type="button"
 						onClick={onCancel}
-						className="macos-btn-cancel-large"
+						className="macos-btn-primary mt-2 px-8"
 					>
 						Stop Optimization
 					</button>

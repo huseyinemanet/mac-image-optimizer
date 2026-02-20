@@ -32,6 +32,14 @@
 
 > _Coming soon_
 
+## 🆕 Recent UI Updates
+
+- Motion-powered animated tab pill transitions in Settings
+- Motion-animated switches and shimmering empty-state text cues
+- Unified button system across views (single primary button style)
+- Refined sticky headers and modal layering/backdrop behavior
+- Compact macOS-like select controls with hover/pressed states
+
 ## 🛠 Tech Stack
 
 | Layer | Technology |

@@ -1,12 +1,8 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import sharp from 'sharp';
-import type {
-	ResponsiveDerivative,
-	ResponsiveSettings,
-	SupportedImageType,
-	OptimiseSettings
-} from '../../shared/types';
+import type { ResponsiveDerivative, ResponsiveSettings, SupportedImageType } from '../../shared/types';
+import type { TaskSettings } from '../core/types';
 import { Logger } from '../logger';
 
 const log = new Logger('Responsive');
@@ -87,7 +83,7 @@ export async function buildDerivativePlan(
 export async function renderDerivative(
 	inputPath: string,
 	plan: DerivativePlan,
-	settings: OptimiseSettings,
+	settings: TaskSettings,
 	outputFolder: string
 ): Promise<ResponsiveDerivative> {
 	const baseName = path.basename(inputPath, path.extname(inputPath));
