@@ -147,6 +147,7 @@ export async function executeRun(
 				failed,
 				skipped,
 				savedBytes,
+				savedByMetadataBytes: 0,
 				elapsedMs: Date.now() - start
 			},
 			file: {
@@ -272,6 +273,7 @@ export async function executeRun(
 		totalOriginalBytes,
 		totalOutputBytes,
 		totalSavedBytes: Math.max(0, totalOriginalBytes - totalOutputBytes),
+		totalSavedByMetadataBytes: 0,
 		elapsedMs: Date.now() - start,
 		logPath,
 		failures
@@ -300,6 +302,7 @@ export async function executeRun(
 			failed,
 			skipped,
 			savedBytes: summary.totalSavedBytes,
+			savedByMetadataBytes: summary.totalSavedByMetadataBytes ?? 0,
 			elapsedMs: summary.elapsedMs
 		},
 		finished: true,

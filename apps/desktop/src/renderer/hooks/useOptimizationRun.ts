@@ -10,6 +10,9 @@ interface UseOptimizationRunProps {
 		beforeBytes: number;
 		afterBytes?: number;
 		reason?: string;
+		metadataAction?: 'Removed' | 'Kept' | 'Partial';
+		iccAction?: 'Converted to sRGB' | 'Kept' | 'Stripped';
+		gpsAction?: 'Removed' | 'Not present';
 	}>>>;
 	refreshRestoreAvailability: () => void;
 }
@@ -31,7 +34,10 @@ export function useOptimizationRun({ files, settings, setRowRuntime, refreshRest
 						status: file.status,
 						beforeBytes: file.beforeBytes,
 						afterBytes: file.afterBytes > 0 ? file.afterBytes : undefined,
-						reason: file.message
+						reason: file.message,
+						metadataAction: file.metadataAction,
+						iccAction: file.iccAction,
+						gpsAction: file.gpsAction
 					}
 				}));
 			}

@@ -240,7 +240,13 @@ export function AppShell(): React.JSX.Element {
         return `Completed with issues • ${summary.failedFiles} failed • ${elapsed}`;
       }
       if (savedBytes > 0) {
-        return `Saved ${formatBytes(savedBytes)} (${percentSaved}%) • ${elapsed}`;
+        const metadataSaved = summary.totalSavedByMetadataBytes || 0;
+        const optSaved = savedBytes - metadataSaved;
+        let msg = `Saved ${formatBytes(savedBytes)} (${percentSaved}%)`;
+        if (metadataSaved > 0) {
+          msg += ` (Opt: ${formatBytes(optSaved)}, Meta: ${formatBytes(metadataSaved)})`;
+        }
+        return `${msg} • ${elapsed}`;
       }
       if (summary.skippedFiles === summary.totalFiles) {
         return `No savings (all skipped) • ${summary.skippedFiles} skipped • ${elapsed}`;

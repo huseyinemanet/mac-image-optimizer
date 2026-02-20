@@ -26,6 +26,7 @@ import { toEffectiveSettings, type ActionDecision, type CandidateResult, type Ef
 import { analyzeImage, type ImageFeatures } from './analysis';
 import { findOptimalQuality } from './smartSearch';
 import { buildDerivativePlan, generateHtmlSnippet, generateManifest, renderDerivative } from './responsive';
+import { prepareImageMetadata, type MetadataReport } from './metadata';
 
 const log = new Logger('Pipeline');
 
@@ -486,6 +487,11 @@ export async function processFile(task: WorkerTask): Promise<PipelineFileResult>
 
   const features = await analyzeImage(originalBuffer);
 
+  const metaPrep = await prepareImageMetadata(task.inputPath, originalBuffer, settings);
+  const processingPath = metaPrep.path;
+  const processingBuffer = metaPrep.buffer;
+  const metaReport = metaPrep.report;
+
   const backups: BackupRecord[] = [];
   const backupCache = new Map<string, string>();
   const actions: PipelineFileResult['actions'] = {};
@@ -493,9 +499,9 @@ export async function processFile(task: WorkerTask): Promise<PipelineFileResult>
   const commonRoot = task.commonRoot ?? path.dirname(task.inputPath);
 
   if (shouldOptimizeOriginal(settings.runMode)) {
-    actions.optimised = await runOptimizeAction(
-      task.inputPath,
-      originalBuffer,
+    const result = await runOptimizeAction(
+      processingPath,
+      processingBuffer,
       features,
       settings,
       commonRoot,
@@ -503,12 +509,13 @@ export async function processFile(task: WorkerTask): Promise<PipelineFileResult>
       backupCache,
       backups
     );
+    actions.optimised = { ...result, ...metaReport };
   }
 
   if (shouldCreateWebp(settings.runMode)) {
-    actions.webp = await runWebpAction(
-      task.inputPath,
-      originalBuffer,
+    const result = await runWebpAction(
+      processingPath,
+      processingBuffer,
       features,
       settings,
       commonRoot,
@@ -516,16 +523,19 @@ export async function processFile(task: WorkerTask): Promise<PipelineFileResult>
       backupCache,
       backups
     );
+    actions.webp = { ...result, ...metaReport };
   }
 
   if (task.mode === 'responsive') {
     actions.responsive = await runResponsiveAction(
-      task.inputPath,
+      processingPath,
       features,
       settings,
       commonRoot
     );
   }
+
+  await metaPrep.cleanup();
 
   const hasSuccess = Object.values(actions).some((action) => action?.status === 'success');
 

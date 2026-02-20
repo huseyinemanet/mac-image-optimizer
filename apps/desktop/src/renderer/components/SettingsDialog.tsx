@@ -1,6 +1,6 @@
 import { Dialog, Disclosure, Transition } from '@headlessui/react';
 import { Fragment, useState } from 'react';
-import type { OptimiseSettings, RunMode } from '@/shared/types';
+import type { OptimiseSettings, RunMode, MetadataCleanupPreset, MetadataCleanupSettings } from '@/shared/types';
 
 interface SettingsDialogProps {
   open: boolean;
@@ -313,7 +313,110 @@ function WebPPanel({ settings, onChange }: { settings: OptimiseSettings; onChang
 
 /* ── Main dialog ──────────────────────────────────────────────── */
 
-const TAB_NAMES = ['General', 'Optimization', 'WebP', 'Smart'] as const;
+function MetadataPanel({ settings, onChange }: { settings: OptimiseSettings; onChange: (s: OptimiseSettings) => void }) {
+  const meta = settings.metadataCleanup;
+
+  const handlePresetChange = (preset: MetadataCleanupPreset) => {
+    let newMeta = { ...meta, preset };
+    if (preset === 'web-safe') {
+      newMeta = { ...newMeta, stripExif: true, stripXmp: true, stripIptc: true, removeThumbnails: true, removeComments: true, gpsClean: true, iccHandling: 'srgb' };
+    } else if (preset === 'max-compression') {
+      newMeta = { ...newMeta, stripExif: true, stripXmp: true, stripIptc: true, removeThumbnails: true, removeComments: true, gpsClean: true, iccHandling: 'strip' };
+    } else if (preset === 'keep-copyright') {
+      newMeta = { ...newMeta, stripExif: true, stripXmp: false, stripIptc: false, removeThumbnails: true, removeComments: true, gpsClean: true, iccHandling: 'srgb' };
+    } else if (preset === 'keep-camera-info') {
+      newMeta = { ...newMeta, stripExif: false, stripXmp: true, stripIptc: true, removeThumbnails: true, removeComments: true, gpsClean: true, iccHandling: 'keep' };
+    }
+    set(settings, onChange, 'metadataCleanup', newMeta);
+  };
+
+  const handleCustomChange = <K extends keyof MetadataCleanupSettings>(key: K, value: MetadataCleanupSettings[K]) => {
+    set(settings, onChange, 'metadataCleanup', { ...meta, [key]: value, preset: 'custom' });
+  };
+
+  return (
+    <div>
+      <div className="settings-section-title">Metadata & Privacy</div>
+      <div className="settings-section">
+        <ToggleRow
+          label="Enable Metadata Cleanup"
+          checked={meta.enabled}
+          onChange={(v) => handleCustomChange('enabled', v)}
+        />
+        {meta.enabled && (
+          <SelectRow
+            label="Cleanup preset"
+            value={meta.preset}
+            options={[
+              { value: 'web-safe', label: 'Web Safe (Recommended)' },
+              { value: 'max-compression', label: 'Max Compression (Risky colours)' },
+              { value: 'keep-copyright', label: 'Keep Copyright' },
+              { value: 'keep-camera-info', label: 'Keep Camera Info (for photographers)' },
+              { value: 'custom', label: 'Custom (Advanced)' },
+            ]}
+            onChange={(v) => handlePresetChange(v as MetadataCleanupPreset)}
+          />
+        )}
+      </div>
+
+      {meta.enabled && (
+        <Disclosure defaultOpen={meta.preset === 'custom'}>
+          {({ open: advOpen }) => (
+            <>
+              <div className="settings-section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Advanced</span>
+                <Disclosure.Button
+                  className="settings-row-control"
+                  style={{ background: 'none', border: 'none', cursor: 'default', fontSize: 13, fontWeight: 500, color: 'var(--macos-accent)' }}
+                >
+                  {advOpen ? 'Hide' : 'Show'}
+                </Disclosure.Button>
+              </div>
+
+              <Disclosure.Panel>
+                <div className="settings-section">
+                  <ToggleRow label="Strip EXIF" checked={meta.stripExif} onChange={(v) => handleCustomChange('stripExif', v)} />
+                  <ToggleRow label="Strip XMP" checked={meta.stripXmp} onChange={(v) => handleCustomChange('stripXmp', v)} />
+                  <ToggleRow label="Strip IPTC" checked={meta.stripIptc} onChange={(v) => handleCustomChange('stripIptc', v)} />
+                  <ToggleRow label="Remove embedded thumbnails / previews" checked={meta.removeThumbnails} onChange={(v) => handleCustomChange('removeThumbnails', v)} />
+                  <ToggleRow label="Remove comments / text chunks" checked={meta.removeComments} onChange={(v) => handleCustomChange('removeComments', v)} />
+                  <ToggleRow label="GPS clean" checked={meta.gpsClean} onChange={(v) => handleCustomChange('gpsClean', v)} />
+
+                  <div style={{ padding: '12px 16px', borderTop: '1px solid var(--macos-border)', marginTop: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--macos-text)', marginBottom: 8 }}>ICC / Colour profile</div>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+                      <input type="radio" checked={meta.iccHandling === 'srgb'} onChange={() => handleCustomChange('iccHandling', 'srgb')} />
+                      <div>
+                        <div style={{ fontSize: 13, color: 'var(--macos-text)' }}>Convert to sRGB</div>
+                        <div style={{ fontSize: 11, color: 'var(--macos-secondary)' }}>Best for web consistency</div>
+                      </div>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
+                      <input type="radio" checked={meta.iccHandling === 'keep'} onChange={() => handleCustomChange('iccHandling', 'keep')} />
+                      <div>
+                        <div style={{ fontSize: 13, color: 'var(--macos-text)' }}>Keep ICC</div>
+                        <div style={{ fontSize: 11, color: 'var(--macos-secondary)' }}>Preserves exact colours, slightly larger file</div>
+                      </div>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <input type="radio" checked={meta.iccHandling === 'strip'} onChange={() => handleCustomChange('iccHandling', 'strip')} />
+                      <div>
+                        <div style={{ fontSize: 13, color: 'var(--macos-text)' }}>Strip ICC</div>
+                        <div style={{ fontSize: 11, color: 'var(--macos-orange)' }}>Smallest file, may shift colours on wide-gamut images</div>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </Disclosure.Panel>
+            </>
+          )}
+        </Disclosure>
+      )}
+    </div>
+  );
+}
+
+const TAB_NAMES = ['General', 'Optimization', 'WebP', 'Smart', 'Metadata'] as const;
 type TabName = typeof TAB_NAMES[number];
 
 export function SettingsDialog({ open, runMode, settings, onClose, onChange }: SettingsDialogProps): React.JSX.Element {
@@ -360,6 +463,7 @@ export function SettingsDialog({ open, runMode, settings, onClose, onChange }: S
                   {activeTab === 'Optimization' && <OptimizationPanel settings={settings} onChange={onChange} />}
                   {activeTab === 'WebP' && <WebPPanel settings={settings} onChange={onChange} />}
                   {activeTab === 'Smart' && <SmartPanel settings={settings} onChange={onChange} />}
+                  {activeTab === 'Metadata' && <MetadataPanel settings={settings} onChange={onChange} />}
                 </div>
               </Dialog.Panel>
             </Transition.Child>

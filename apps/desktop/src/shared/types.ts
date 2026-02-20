@@ -12,6 +12,20 @@ export type FileStatus =
   | 'Failed'
   | 'Cancelled';
 
+export type MetadataCleanupPreset = 'web-safe' | 'max-compression' | 'keep-copyright' | 'keep-camera-info' | 'custom';
+
+export interface MetadataCleanupSettings {
+  enabled: boolean;
+  preset: MetadataCleanupPreset;
+  stripExif: boolean;
+  stripXmp: boolean;
+  stripIptc: boolean;
+  removeThumbnails: boolean;
+  removeComments: boolean;
+  gpsClean: boolean;
+  iccHandling: 'srgb' | 'keep' | 'strip';
+}
+
 export interface OptimiseSettings {
   outputMode: OutputMode;
   exportPreset: ExportPreset;
@@ -38,6 +52,7 @@ export interface OptimiseSettings {
   qualityGuardrail: number;
   optimizationSpeed: 'fast' | 'balanced' | 'thorough';
   responsiveSettings: ResponsiveSettings;
+  metadataCleanup: MetadataCleanupSettings;
 }
 
 export type ResponsiveMode = 'width' | 'dpr';
@@ -71,7 +86,7 @@ export const DEFAULT_SETTINGS: OptimiseSettings = {
   outputMode: 'subfolder',
   exportPreset: 'web',
   namingPattern: '{name}',
-  keepMetadata: false,
+  keepMetadata: false, // Legacy fallback, handled mainly by metadataCleanup natively now
   optimizeClipboardImages: false,
   jpegQualityMode: 'auto',
   jpegQuality: 82,
@@ -93,6 +108,17 @@ export const DEFAULT_SETTINGS: OptimiseSettings = {
   qualityGuardrail: 90,
   optimizationSpeed: 'balanced',
   responsiveSettings: DEFAULT_RESPONSIVE_SETTINGS,
+  metadataCleanup: {
+    enabled: true,
+    preset: 'web-safe',
+    stripExif: true,
+    stripXmp: true,
+    stripIptc: true,
+    removeThumbnails: true,
+    removeComments: true,
+    gpsClean: true,
+    iccHandling: 'srgb',
+  },
 };
 
 export interface StartRunPayload {
@@ -116,6 +142,7 @@ export interface RunOverallProgress {
   failed: number;
   skipped: number;
   savedBytes: number;
+  savedByMetadataBytes: number;
   elapsedMs: number;
 }
 
@@ -125,7 +152,11 @@ export interface RunFileProgress {
   beforeBytes: number;
   afterBytes: number;
   savedBytes: number;
+  savedByMetadataBytes?: number;
   message?: string;
+  metadataAction?: 'Removed' | 'Kept' | 'Partial';
+  iccAction?: 'Converted to sRGB' | 'Kept' | 'Stripped';
+  gpsAction?: 'Removed' | 'Not present';
 }
 
 export interface RunSummary {
@@ -138,6 +169,7 @@ export interface RunSummary {
   totalOriginalBytes: number;
   totalOutputBytes: number;
   totalSavedBytes: number;
+  totalSavedByMetadataBytes?: number;
   elapsedMs: number;
   logPath: string;
   failures: Array<{ path: string; message: string }>;
@@ -235,6 +267,10 @@ export interface ActionResult {
   originalBytes: number;
   outputBytes: number;
   bytesSaved: number;
+  metadataSavedBytes?: number;
+  metadataAction?: 'Removed' | 'Kept' | 'Partial';
+  iccAction?: 'Converted to sRGB' | 'Kept' | 'Stripped';
+  gpsAction?: 'Removed' | 'Not present';
 }
 
 export interface BackupRecord {

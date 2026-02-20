@@ -117,6 +117,17 @@ export class WatchFolderService {
           sizesTemplate: 'default',
           customSizes: '(max-width: 768px) 100vw, 768px',
         },
+        metadataCleanup: {
+          enabled: true,
+          preset: 'web-safe',
+          stripExif: true,
+          stripXmp: true,
+          stripIptc: true,
+          removeThumbnails: true,
+          removeComments: true,
+          gpsClean: true,
+          iccHandling: 'srgb',
+        },
       }
     };
   }

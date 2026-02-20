@@ -8,6 +8,9 @@ interface RowRuntime {
 	beforeBytes: number;
 	afterBytes?: number;
 	reason?: string;
+	metadataAction?: 'Removed' | 'Kept' | 'Partial';
+	iccAction?: 'Converted to sRGB' | 'Kept' | 'Stripped';
+	gpsAction?: 'Removed' | 'Not present';
 }
 
 export function useFileManagement() {
@@ -47,7 +50,10 @@ export function useFileManagement() {
 					}),
 					status: runtime.status,
 					percentSaved: typeof after === 'number' ? formatPercent(before, after) : undefined,
-					reason: runtime.reason
+					reason: runtime.reason,
+					metadataAction: runtime.metadataAction,
+					iccAction: runtime.iccAction,
+					gpsAction: runtime.gpsAction
 				};
 			}),
 		[files, rowRuntime]

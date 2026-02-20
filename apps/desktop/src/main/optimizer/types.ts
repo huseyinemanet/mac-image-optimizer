@@ -1,5 +1,5 @@
 import { DEFAULT_RESPONSIVE_SETTINGS } from '../../shared/types';
-import type { ExportPreset, OptimiseSettings, OutputMode, ResponsiveResult, ResponsiveSettings, RunMode, SupportedImageType } from '../../shared/types';
+import type { ExportPreset, OptimiseSettings, OutputMode, ResponsiveResult, ResponsiveSettings, RunMode, SupportedImageType, MetadataCleanupSettings } from '../../shared/types';
 
 export const JPEG_AUTO_QUALITIES = [88, 84, 80, 76, 72] as const;
 export const WEBP_AUTO_QUALITIES = [82, 78, 74, 70] as const;
@@ -31,6 +31,7 @@ export interface EffectiveSettings {
   qualityGuardrail: number;
   optimizationSpeed: 'fast' | 'balanced' | 'thorough';
   responsiveSettings: ResponsiveSettings;
+  metadataCleanup: MetadataCleanupSettings;
 }
 
 export interface CandidateResult {
@@ -90,6 +91,7 @@ export function toEffectiveSettings(settings: OptimiseSettings, runMode: RunMode
     smartTarget: settings.smartTarget ?? 'visually-lossless',
     qualityGuardrail: settings.qualityGuardrail ?? 90,
     optimizationSpeed: settings.optimizationSpeed ?? 'balanced',
-    responsiveSettings: settings.responsiveSettings || DEFAULT_RESPONSIVE_SETTINGS
+    responsiveSettings: settings.responsiveSettings || DEFAULT_RESPONSIVE_SETTINGS,
+    metadataCleanup: settings.metadataCleanup
   };
 }

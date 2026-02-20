@@ -10,6 +10,9 @@ export interface FileTableRow {
   status: FileStatus;
   percentSaved?: number;
   reason?: string;
+  metadataAction?: 'Removed' | 'Kept' | 'Partial';
+  iccAction?: 'Converted to sRGB' | 'Kept' | 'Stripped';
+  gpsAction?: 'Removed' | 'Not present';
 }
 
 interface FileTableProps {
@@ -47,8 +50,13 @@ function statusBadge(row: FileTableRow): React.JSX.Element {
     badgeBg = 'var(--macos-green)';
   }
 
+  let titleInfo = row.reason || '';
+  if (row.metadataAction) titleInfo += (titleInfo ? '\n' : '') + `Metadata: ${row.metadataAction}`;
+  if (row.iccAction) titleInfo += (titleInfo ? '\n' : '') + `ICC: ${row.iccAction}`;
+  if (row.gpsAction) titleInfo += (titleInfo ? '\n' : '') + `GPS: ${row.gpsAction}`;
+
   return (
-    <div className="badge-status" style={{ background: badgeBg }} title={row.reason}>
+    <div className="badge-status" style={{ background: badgeBg }} title={titleInfo || undefined}>
       <span className="label-row label-center" style={{ color: '#FFFFFF' }}>{badgeLabel}</span>
     </div>
   );
