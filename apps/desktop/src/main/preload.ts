@@ -3,11 +3,15 @@ import type {
   ClipboardErrorEvent,
   ClipboardOptimizedEvent,
   ImageListItem,
+  OptimiseSettings,
+  PreviewResult,
   RunProgressEvent,
   StartRunPayload,
   StartRunResult,
   WatchFileDetectedEvent,
   WatchFileOptimizedEvent,
+  WatchFolderStatus,
+  WatchFolderSettings,
 } from '../shared/types';
 
 /** Creates a typed IPC event listener with proper cleanup. */
@@ -52,9 +56,16 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.invoke('notification:show', { title, body, silent }) as Promise<void>,
 
   // ── Watch Folders ──
-  addWatchFolder: (path: string) => ipcRenderer.invoke('watch:add-folder', path) as Promise<string[]>,
-  removeWatchFolder: (path: string) => ipcRenderer.invoke('watch:remove-folder', path) as Promise<string[]>,
-  listWatchFolders: () => ipcRenderer.invoke('watch:list-folders') as Promise<string[]>,
+  addWatchFolder: (path: string) => ipcRenderer.invoke('watch:add-folder', path) as Promise<WatchFolderStatus[]>,
+  removeWatchFolder: (path: string) => ipcRenderer.invoke('watch:remove-folder', path) as Promise<WatchFolderStatus[]>,
+  listWatchFolders: () => ipcRenderer.invoke('watch:list-folders') as Promise<WatchFolderStatus[]>,
+  updateWatchFolderSettings: (path: string, settings: WatchFolderSettings) =>
+    ipcRenderer.invoke('watch:update-folder-settings', path, settings) as Promise<WatchFolderStatus[]>,
+  toggleWatchFolder: (path: string, enabled: boolean) =>
+    ipcRenderer.invoke('watch:toggle-folder', path, enabled) as Promise<WatchFolderStatus[]>,
+  getGlobalWatchSettings: () => ipcRenderer.invoke('watch:get-global-settings') as Promise<WatchFolderSettings>,
+  updateGlobalWatchSettings: (settings: WatchFolderSettings) =>
+    ipcRenderer.invoke('watch:update-global-settings', settings) as Promise<void>,
   onWatchFileDetected: createListener<WatchFileDetectedEvent>('watch:fileDetected'),
   onWatchFileOptimized: createListener<WatchFileOptimizedEvent>('watch:fileOptimized'),
 
@@ -73,4 +84,5 @@ contextBridge.exposeInMainWorld('api', {
   onActionOptimize: createListener<string[]>('menu:action-optimize'),
   onActionConvert: createListener<string[]>('menu:action-convert'),
   onActionReveal: createListener<string[]>('menu:action-reveal'),
+  getPreview: (path: string, settings: OptimiseSettings) => ipcRenderer.invoke('optimise:preview', path, settings) as Promise<PreviewResult>,
 });

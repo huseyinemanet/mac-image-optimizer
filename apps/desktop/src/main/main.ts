@@ -17,7 +17,7 @@ let mainWindow: BrowserWindow | null = null;
 let watchService: WatchFolderService | null = null;
 let clipboardWatcher: ClipboardWatcherService | null = null;
 
-function createWindow(): void {
+function createWindow(iconPath: string): void {
   mainWindow = new BrowserWindow({
     width: 774,
     height: 568,
@@ -33,6 +33,7 @@ function createWindow(): void {
     backgroundColor: '#00000000',
     trafficLightPosition: { x: 16, y: 16 },
     title: 'Crunch',
+    icon: iconPath,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -60,10 +61,25 @@ registerIpcHandlers(
 );
 
 app.whenReady().then(async () => {
+  const iconPath = path.join(__dirname, '..', '..', 'resources', 'icon.png');
+
   if (process.platform === 'darwin') {
-    app.dock?.setIcon(path.join(app.getAppPath(), 'resources', 'icon.png'));
+    const icnsPath = path.join(__dirname, '..', '..', 'resources', 'icon.icns');
+    try {
+      app.dock?.setIcon(icnsPath);
+    } catch (err) {
+      log.warn('Failed to set dock icon', err);
+    }
   }
-  createWindow();
+
+  app.setAboutPanelOptions({
+    applicationName: 'Crunch',
+    applicationVersion: app.getVersion(),
+    version: app.getVersion(),
+    copyright: `Copyright © ${new Date().getFullYear()} Crunch`,
+    iconPath: iconPath,
+  });
+  createWindow(iconPath);
 
   Logger.setListener((level, context, message, ...args) => {
     mainWindow?.webContents.send('app:log', { level, context, message, args });
@@ -81,12 +97,13 @@ app.whenReady().then(async () => {
     (payload) => mainWindow?.webContents.send('clipboard:error', payload),
   );
   clipboardWatcher.start();
+});
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    const iconPath = path.join(__dirname, '..', '..', 'resources', 'icon.png');
+    createWindow(iconPath);
+  }
 });
 
 app.on('before-quit', async () => {

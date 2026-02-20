@@ -165,6 +165,53 @@ function OptimizationPanel({ settings, onChange }: { settings: OptimiseSettings;
   );
 }
 
+function SmartPanel({ settings, onChange }: { settings: OptimiseSettings; onChange: (s: OptimiseSettings) => void }) {
+  return (
+    <div>
+      <div className="settings-section-title">Smart Compression</div>
+      <div className="settings-section">
+        <ToggleRow
+          label="Enable Smart Mode"
+          checked={settings.smartCompressionMode}
+          onChange={(v) => set(settings, onChange, 'smartCompressionMode', v)}
+        />
+        <SelectRow
+          label="Target"
+          value={settings.smartTarget}
+          options={[
+            { value: 'visually-lossless', label: 'Visually lossless (recommended)' },
+            { value: 'high', label: 'High' },
+            { value: 'balanced', label: 'Balanced' },
+            { value: 'small', label: 'Small' },
+            { value: 'custom', label: 'Custom…' },
+          ]}
+          onChange={(v) => set(settings, onChange, 'smartTarget', v as OptimiseSettings['smartTarget'])}
+        />
+        {settings.smartTarget === 'custom' && (
+          <SliderRow
+            label="Quality guardrail"
+            value={settings.qualityGuardrail}
+            min={0}
+            max={100}
+            hint="Minimum acceptable quality %"
+            onChange={(v) => set(settings, onChange, 'qualityGuardrail', v)}
+          />
+        )}
+        <SelectRow
+          label="Speed vs Size"
+          value={settings.optimizationSpeed}
+          options={[
+            { value: 'fast', label: 'Fast' },
+            { value: 'balanced', label: 'Balanced' },
+            { value: 'thorough', label: 'Thorough' },
+          ]}
+          onChange={(v) => set(settings, onChange, 'optimizationSpeed', v as OptimiseSettings['optimizationSpeed'])}
+        />
+      </div>
+    </div>
+  );
+}
+
 function WebPPanel({ settings, onChange }: { settings: OptimiseSettings; onChange: (s: OptimiseSettings) => void }) {
   const webpMin = settings.webpNearLossless ? 60 : 70;
   const webpMax = settings.webpNearLossless ? 100 : 95;
@@ -266,7 +313,7 @@ function WebPPanel({ settings, onChange }: { settings: OptimiseSettings; onChang
 
 /* ── Main dialog ──────────────────────────────────────────────── */
 
-const TAB_NAMES = ['General', 'Optimization', 'WebP'] as const;
+const TAB_NAMES = ['General', 'Optimization', 'WebP', 'Smart'] as const;
 type TabName = typeof TAB_NAMES[number];
 
 export function SettingsDialog({ open, runMode, settings, onClose, onChange }: SettingsDialogProps): React.JSX.Element {
@@ -312,6 +359,7 @@ export function SettingsDialog({ open, runMode, settings, onClose, onChange }: S
                   {activeTab === 'General' && <GeneralPanel settings={settings} onChange={onChange} />}
                   {activeTab === 'Optimization' && <OptimizationPanel settings={settings} onChange={onChange} />}
                   {activeTab === 'WebP' && <WebPPanel settings={settings} onChange={onChange} />}
+                  {activeTab === 'Smart' && <SmartPanel settings={settings} onChange={onChange} />}
                 </div>
               </Dialog.Panel>
             </Transition.Child>

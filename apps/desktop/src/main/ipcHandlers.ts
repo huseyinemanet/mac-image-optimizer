@@ -1,7 +1,11 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { app, BrowserWindow, clipboard, dialog, ipcMain, shell, Menu, MenuItem, Notification } from 'electron';
-import type { BackupRecord, OptimiseSettings, StartRunPayload } from '../shared/types';
+import type { BackupRecord, OptimiseSettings, PreviewResult, StartRunPayload } from '../shared/types';
+import { analyzeImage } from './optimizer/analysis';
+import { findOptimalQuality } from './optimizer/smartSearch';
+import { toEffectiveSettings } from './optimizer/types';
+import { getOutputFormatForPath } from './optimizer/candidates';
 import { scanImageList } from './fileScanner';
 import { executeRun, cancelRun } from './services/runService';
 import type { WatchFolderService } from './watch/watcher';
@@ -117,7 +121,6 @@ export function registerIpcHandlers(
 
 	ipcMain.handle('run:start', async (_event, payload: StartRunPayload) => {
 		log.info(`IPC: run:start received (paths: ${payload.paths.length})`);
-		getWatchService()?.updateRunPreferences(payload.settings, payload.mode);
 		getClipboardWatcher()?.configure(Boolean(payload.settings.optimizeClipboardImages), payload.settings);
 		const runId = createTimestamp();
 		void executeRun(runId, payload, getMainWindow(), writeLastRunState);
@@ -132,6 +135,33 @@ export function registerIpcHandlers(
 
 	ipcMain.handle('optimise:restore-last', async () => restoreLastRun());
 	ipcMain.handle('optimise:can-restore-last', async () => canRestoreLastRun());
+	ipcMain.handle('optimise:preview', async (_event, filePath: string, settings: OptimiseSettings) => {
+		const originalBuffer = await fs.readFile(filePath);
+		const effective = toEffectiveSettings(settings, 'smart');
+		const type = getOutputFormatForPath(filePath);
+
+		if (type === 'jpeg' || type === 'webp') {
+			const features = await analyzeImage(originalBuffer);
+			const res = await findOptimalQuality(filePath, originalBuffer, features, effective, type);
+			if (res) {
+				return {
+					buffer: res.buffer,
+					originalBuffer,
+					size: res.buffer.length,
+					quality: res.quality,
+					ssim: res.metrics.mssim
+				} as PreviewResult;
+			}
+		}
+
+		return {
+			buffer: originalBuffer,
+			originalBuffer,
+			size: originalBuffer.length,
+			quality: 100,
+			ssim: 1
+		} as PreviewResult;
+	});
 
 	// ── File Operations ──
 
@@ -156,7 +186,7 @@ export function registerIpcHandlers(
 	});
 
 	// ── Watch Folders ──
-
+	log.debug('Registering watch IPC handlers');
 	ipcMain.handle('watch:add-folder', async (_event, folderPath: string) => {
 		const ws = getWatchService();
 		if (!ws) throw new Error('Watch service not initialized');
@@ -171,6 +201,30 @@ export function registerIpcHandlers(
 
 	ipcMain.handle('watch:list-folders', async () => {
 		return getWatchService()?.listFolders() ?? [];
+	});
+
+	ipcMain.handle('watch:update-folder-settings', async (_event, folderPath: string, settings: any) => {
+		const ws = getWatchService();
+		if (!ws) throw new Error('Watch service not initialized');
+		return ws.updateFolderSettings(folderPath, settings);
+	});
+
+	ipcMain.handle('watch:toggle-folder', async (_event, folderPath: string, enabled: boolean) => {
+		const ws = getWatchService();
+		if (!ws) throw new Error('Watch service not initialized');
+		return ws.toggleFolder(folderPath, enabled);
+	});
+
+	ipcMain.handle('watch:get-global-settings', async () => {
+		const ws = getWatchService();
+		if (!ws) throw new Error('Watch service not initialized');
+		return ws.getGlobalSettings();
+	});
+
+	ipcMain.handle('watch:update-global-settings', async (_event, settings: any) => {
+		const ws = getWatchService();
+		if (!ws) throw new Error('Watch service not initialized');
+		return ws.updateGlobalSettings(settings);
 	});
 
 	// ── Notifications ──

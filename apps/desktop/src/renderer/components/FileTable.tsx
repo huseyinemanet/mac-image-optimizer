@@ -17,6 +17,7 @@ interface FileTableProps {
   selected: Set<string>;
   onSelect: (path: string, event: MouseEvent<HTMLDivElement>) => void;
   onContextMenu: (path: string, event: MouseEvent<HTMLDivElement>) => void;
+  onPreview: (row: FileTableRow) => void;
   setSelected: (selected: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
   showDropHint: boolean;
 }
@@ -53,7 +54,7 @@ function statusBadge(row: FileTableRow): React.JSX.Element {
   );
 }
 
-export function FileTable({ rows, selected, onSelect, onContextMenu, setSelected, showDropHint }: FileTableProps): React.JSX.Element {
+export function FileTable({ rows, selected, onSelect, onContextMenu, onPreview, setSelected, showDropHint }: FileTableProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const [lasso, setLasso] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const startPos = useRef<{ x: number; y: number } | null>(null);
@@ -162,7 +163,7 @@ export function FileTable({ rows, selected, onSelect, onContextMenu, setSelected
       {/* Header Row */}
       <div className="tr-header">
         <div className="td-cell td-name">
-          <span className="label-header">Name</span>
+          <span className="label-header ml-8">Name</span>
         </div>
         <div className="td-cell td-type">
           <span className="label-header label-center">Type</span>
@@ -189,12 +190,22 @@ export function FileTable({ rows, selected, onSelect, onContextMenu, setSelected
                 onSelect(row.path, event);
               }}
               onContextMenu={(event) => onContextMenu(row.path, event)}
-              className="tr-row cursor-default"
+              className="tr-row cursor-default group"
               style={{
                 background: isSelected ? 'var(--macos-selection)' : 'transparent'
               }}
             >
               <div className="td-cell td-name">
+                <button
+                  className="macos-icon-btn mr-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPreview(row);
+                  }}
+                  title="Preview optimization"
+                >
+                  👁
+                </button>
                 <span className="label-row" style={{ color: isSelected ? 'var(--macos-accent)' : 'var(--macos-text)' }}>
                   {row.name}
                 </span>

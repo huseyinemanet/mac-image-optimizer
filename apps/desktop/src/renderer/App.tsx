@@ -1,6 +1,6 @@
 import type { DragEventHandler, MouseEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
-import type { OptimiseSettings, RunMode } from '@/shared/types';
+import type { ImageListItem, OptimiseSettings, RunMode } from '@/shared/types';
 import { DEFAULT_SETTINGS } from '@/shared/types';
 import { BottomBar } from './components/BottomBar';
 import { DropZone } from './components/DropZone';
@@ -8,6 +8,9 @@ import { FileTable } from './components/FileTable';
 import { SettingsDialog } from './components/SettingsDialog';
 import { ProgressOverlay } from './components/ProgressOverlay';
 import { Sidebar } from './components/Sidebar';
+import { WatchMode } from './components/WatchMode';
+import { ResponsiveMode } from './components/ResponsiveMode';
+import { PreviewPanel } from './components/PreviewPanel';
 import { formatBytes, formatElapsed } from './utils/format';
 import { useFileManagement } from './hooks/useFileManagement';
 import { useOptimizationRun } from './hooks/useOptimizationRun';
@@ -20,6 +23,10 @@ export function AppShell(): React.JSX.Element {
   const [canRestore, setCanRestore] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [showDropHint, setShowDropHint] = useState(true);
+  const [previewFile, setPreviewFile] = useState<ImageListItem | null>(null);
+  const [previewData, setPreviewData] = useState<{ buffer: Buffer; originalBuffer?: Buffer; size: number; quality: number; ssim: number } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [currentView, setCurrentView] = useState<'batch' | 'watch' | 'responsive'>('batch');
 
   const {
     inputs,
@@ -37,6 +44,23 @@ export function AppShell(): React.JSX.Element {
     removeFromList,
     setSelected
   } = useFileManagement();
+
+  const handlePreview = async (row: any) => {
+    const item = files.find(f => f.path === row.path);
+    if (!item) return;
+
+    setPreviewFile(item);
+    setPreviewLoading(true);
+    setPreviewData(null);
+    try {
+      const result = await (window.api as any).getPreview(item.path, settings);
+      setPreviewData(result);
+    } catch (err) {
+      console.error('Preview failed:', err);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
 
   const refreshRestoreAvailability = async () => {
     const available = await window.api.canRestoreLastRun();
@@ -233,6 +257,8 @@ export function AppShell(): React.JSX.Element {
         <Sidebar
           busy={busy}
           showRestore={canRestore}
+          currentView={currentView}
+          onViewChange={setCurrentView}
           onPickFolder={() => {
             void window.api.selectFolder().then((picked) => {
               if (picked) {
@@ -262,58 +288,88 @@ export function AppShell(): React.JSX.Element {
           onDragLeave={onDragLeave}
           onDrop={onDrop}
         >
-          <main className="flex-1 flex flex-col min-h-0 w-full">
-            {files.length === 0 ? (
-              <DropZone
-                isDragActive={dragActive}
-                onDragEnter={onDragEnter}
-                onDragLeave={onDragLeave}
-                onDrop={onDrop}
-              />
-            ) : (
-              <FileTable
-                rows={rows}
-                selected={selected}
-                onSelect={onSelect}
-                onContextMenu={onOpenContextMenu}
-                setSelected={setSelected}
-                showDropHint={showDropHint && !dragActive}
-              />
-            )}
-          </main>
+          {currentView === 'watch' ? (
+            <WatchMode />
+          ) : currentView === 'responsive' ? (
+            <ResponsiveMode
+              settings={settings}
+              onChange={setSettings}
+              onRun={() => void run('responsive', targets)}
+              busy={busy}
+              fileCount={targets.length}
+            />
+          ) : (
+            <>
+              <main className="flex-1 flex flex-col min-h-0 w-full">
+                {files.length === 0 ? (
+                  <DropZone
+                    isDragActive={dragActive}
+                    onDragEnter={onDragEnter}
+                    onDragLeave={onDragLeave}
+                    onDrop={onDrop}
+                  />
+                ) : (
+                  <FileTable
+                    rows={rows}
+                    selected={selected}
+                    onSelect={onSelect}
+                    onContextMenu={onOpenContextMenu}
+                    onPreview={handlePreview}
+                    setSelected={setSelected}
+                    showDropHint={showDropHint && !dragActive}
+                  />
+                )}
+              </main>
 
-          <ProgressOverlay
-            busy={busy}
-            progressPercent={progressPercent}
-            done={progress.done}
-            total={progress.total}
-            savedText={formatBytes(progress.savedBytes)}
-            savedPercent={savedPercent}
-            onCancel={() => {
-              if (activeRunId) {
-                void window.api.cancelRun(activeRunId);
-              }
-            }}
-          />
+              <ProgressOverlay
+                busy={busy}
+                progressPercent={progressPercent}
+                done={progress.done}
+                total={progress.total}
+                savedText={formatBytes(progress.savedBytes)}
+                savedPercent={savedPercent}
+                onCancel={() => {
+                  if (activeRunId) {
+                    void window.api.cancelRun(activeRunId);
+                  }
+                }}
+              />
 
-          <BottomBar
-            summaryLine={summaryLine}
-            busy={busy}
-            done={progress.done}
-            savedText={formatBytes(progress.savedBytes)}
-            savedPercent={savedPercent}
-            progressPercent={progressPercent}
-            mode={mode}
-            canRun={targets.length > 0}
-            onModeChange={setMode}
-            onRun={() => void run(mode, targets)}
-            onCancel={() => {
-              if (activeRunId) {
-                void window.api.cancelRun(activeRunId);
-              }
-            }}
-          />
+              <BottomBar
+                summaryLine={summaryLine}
+                busy={busy}
+                done={progress.done}
+                savedText={formatBytes(progress.savedBytes)}
+                savedPercent={savedPercent}
+                progressPercent={progressPercent}
+                mode={mode}
+                canRun={targets.length > 0}
+                onModeChange={setMode}
+                onRun={() => void run(mode, targets)}
+                onCancel={() => {
+                  if (activeRunId) {
+                    void window.api.cancelRun(activeRunId);
+                  }
+                }}
+              />
+            </>
+          )}
         </div>
+
+        {previewFile && (
+          <PreviewPanel
+            originalPath={previewFile.path}
+            originalSize={previewFile.size}
+            originalBuffer={previewData?.originalBuffer}
+            optimizedBuffer={previewData?.buffer}
+            optimizedSize={previewData?.size}
+            params={previewData ? `Q: ${previewData.quality}, SSIM: ${previewData.ssim.toFixed(4)}` : (previewLoading ? 'Optimizing...' : '')}
+            onClose={() => {
+              setPreviewFile(null);
+              setPreviewData(null);
+            }}
+          />
+        )}
 
         <SettingsDialog open={settingsOpen} runMode={mode} settings={settings} onClose={() => setSettingsOpen(false)} onChange={setSettings} />
       </div>

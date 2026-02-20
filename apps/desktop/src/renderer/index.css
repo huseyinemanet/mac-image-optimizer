@@ -123,8 +123,29 @@ body {
 }
 
 .sidebar-header {
-  height: 52px;
+  height: 64px;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: var(--macos-surface-raised);
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  -webkit-app-region: drag;
+}
+
+.sidebar-logo img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
 }
 
 .sidebar-menu {
@@ -1172,4 +1193,221 @@ input[type='range']::-moz-range-track {
   .progress-overlay-container {
     background: rgba(0, 0, 0, 0.4);
   }
+}
+
+/* ── Preview Panel ──────────────────────────────────────────────── */
+.preview-panel {
+  position: absolute;
+  top: 60px;
+  left: 20px;
+  right: 20px;
+  bottom: 80px;
+  background: var(--macos-menu-bg);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 0.5px solid var(--macos-separator);
+  border-radius: var(--macos-radius-lg);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  z-index: 30;
+  overflow: hidden;
+}
+
+.preview-header {
+  height: 44px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 0.5px solid var(--macos-separator);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.preview-tabs,
+.preview-zoom {
+  display: flex;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 2px;
+  border-radius: 6px;
+}
+
+.preview-tabs button,
+.preview-zoom button {
+  padding: 2px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--macos-secondary);
+}
+
+.preview-tabs button.active,
+.preview-zoom button.active {
+  background: #fff;
+  color: var(--macos-text);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.preview-close {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.05);
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-content {
+  flex: 1;
+  background: #f0f0f0;
+  overflow: auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-viewport {
+  position: relative;
+}
+
+.split-view {
+  position: relative;
+  cursor: col-resize;
+  overflow: hidden;
+}
+
+.split-view img {
+  max-width: none;
+  display: block;
+}
+
+.optimized-container {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.optimized-container img {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.split-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #fff;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+
+.toggle-view {
+  position: relative;
+  cursor: pointer;
+}
+
+.toggle-hint {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  text-align: center;
+  padding: 4px;
+  font-size: 11px;
+}
+
+.preview-footer {
+  height: 48px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  border-top: 0.5px solid var(--macos-separator);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+@media (prefers-color-scheme: dark) {
+  .preview-content {
+    background: #111;
+  }
+
+  .preview-tabs button.active,
+  .preview-zoom button.active {
+    background: #444;
+  }
+}
+
+/* ── Watch Mode Specifics ───────────────────────────────────────── */
+.watch-feed-item {
+  animation: slide-in 0.3s ease-out;
+  border-bottom: 0.5px solid var(--macos-separator);
+}
+
+.watch-feed-item:last-child {
+  border-bottom: none;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pulse-accent {
+  box-shadow: 0 0 8px var(--macos-accent);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+
+  100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+}
+
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--macos-red);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.live-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  background: var(--macos-red);
+  border-radius: 50%;
+  animation: pulse 1.5s infinite;
 }

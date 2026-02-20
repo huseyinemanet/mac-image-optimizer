@@ -1,6 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import type { ActionResult, BackupRecord, FileStatus, RunMode, RunProgressEvent, RunSummary, StartRunPayload, WorkerTask } from '../../shared/types';
+import type { ActionResult, BackupRecord, FileStatus, ResponsiveResult, RunMode, RunProgressEvent, RunSummary, StartRunPayload, WorkerTask } from '../../shared/types';
 import { resolveInputPaths } from '../fileScanner';
 import { Logger } from '../logger';
 import { getAutoConcurrency, WorkerPool } from '../optimizer/workerPool';
@@ -12,6 +12,7 @@ interface RunLogEntry {
 	actions: {
 		optimised?: ActionResult;
 		webp?: ActionResult;
+		responsive?: ResponsiveResult;
 	};
 	status: 'success' | 'skipped' | 'failed';
 	reason?: string;
@@ -52,8 +53,8 @@ function emitProgress(mainWindow: BrowserWindow | null, event: RunProgressEvent)
 	mainWindow?.webContents.send('run:progress', event);
 }
 
-function inferFileStatus(mode: RunMode, actions: { optimised?: ActionResult; webp?: ActionResult }): FileStatus {
-	const primary = mode === 'convertWebp' ? actions.webp : mode === 'optimize' ? actions.optimised : actions.webp ?? actions.optimised;
+function inferFileStatus(mode: RunMode, actions: { optimised?: ActionResult; webp?: ActionResult; responsive?: ResponsiveResult }): FileStatus {
+	const primary = mode === 'convertWebp' ? actions.webp : mode === 'optimize' ? actions.optimised : mode === 'responsive' ? actions.responsive : actions.webp ?? actions.optimised;
 	if (!primary) {
 		return 'Skipped';
 	}
@@ -68,12 +69,15 @@ function inferFileStatus(mode: RunMode, actions: { optimised?: ActionResult; web
 	return 'Done';
 }
 
-function actionForMode(mode: RunMode, actions: { optimised?: ActionResult; webp?: ActionResult }): ActionResult | undefined {
+function actionForMode(mode: RunMode, actions: { optimised?: ActionResult; webp?: ActionResult; responsive?: ResponsiveResult }): ActionResult | ResponsiveResult | undefined {
 	if (mode === 'optimize') {
 		return actions.optimised;
 	}
 	if (mode === 'convertWebp') {
 		return actions.webp;
+	}
+	if (mode === 'responsive') {
+		return actions.responsive;
 	}
 	return actions.webp ?? actions.optimised;
 }
@@ -206,7 +210,18 @@ export async function executeRun(
 				}
 
 				const originalBytes = response.originalBytes;
-				const outputBytes = relevantAction?.status === 'success' ? relevantAction.outputBytes : originalBytes;
+				let outputBytes = originalBytes;
+
+				if (payload.mode === 'responsive') {
+					const res = response.actions.responsive;
+					if (res?.status === 'success') {
+						outputBytes = res.derivatives.reduce((acc, d) => acc + d.size, 0);
+					}
+				} else {
+					const act = relevantAction as ActionResult;
+					outputBytes = act?.status === 'success' ? act.outputBytes : originalBytes;
+				}
+
 				const bytesSaved = Math.max(0, originalBytes - outputBytes);
 
 				totalOriginalBytes += originalBytes;

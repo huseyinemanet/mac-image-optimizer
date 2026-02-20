@@ -18,7 +18,9 @@ interface BottomBarProps {
 const modeLabel: Record<RunMode, string> = {
   optimize: 'Optimize',
   optimizeAndWebp: 'Optimize + WebP',
-  convertWebp: 'WebP'
+  convertWebp: 'WebP',
+  smart: 'Smart Compression',
+  responsive: 'Responsive'
 };
 
 export function BottomBar({

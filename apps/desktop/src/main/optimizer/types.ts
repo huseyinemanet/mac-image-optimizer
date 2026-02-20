@@ -1,4 +1,5 @@
-import type { ExportPreset, OptimiseSettings, OutputMode, RunMode, SupportedImageType } from '../../shared/types';
+import { DEFAULT_RESPONSIVE_SETTINGS } from '../../shared/types';
+import type { ExportPreset, OptimiseSettings, OutputMode, ResponsiveResult, ResponsiveSettings, RunMode, SupportedImageType } from '../../shared/types';
 
 export const JPEG_AUTO_QUALITIES = [88, 84, 80, 76, 72] as const;
 export const WEBP_AUTO_QUALITIES = [82, 78, 74, 70] as const;
@@ -25,6 +26,11 @@ export interface EffectiveSettings {
   webpNearLossless: boolean;
   webpEffort: number;
   qualityGuardrailSsim: boolean;
+  smartCompressionMode: boolean;
+  smartTarget: 'visually-lossless' | 'high' | 'balanced' | 'small' | 'custom';
+  qualityGuardrail: number;
+  optimizationSpeed: 'fast' | 'balanced' | 'thorough';
+  responsiveSettings: ResponsiveSettings;
 }
 
 export interface CandidateResult {
@@ -50,9 +56,10 @@ export interface PipelineFileResult {
   actions: {
     optimised?: ActionDecision;
     webp?: ActionDecision;
+    responsive?: ResponsiveResult;
   };
   backups: Array<{ originalPath: string; backupPath: string; removeOnRestore?: string }>;
-  status: 'success' | 'skipped';
+  status: 'success' | 'skipped' | 'failed';
   message?: string;
 }
 
@@ -78,6 +85,11 @@ export function toEffectiveSettings(settings: OptimiseSettings, runMode: RunMode
     webpQuality,
     webpNearLossless: settings.webpNearLossless,
     webpEffort: Math.max(4, Math.min(6, settings.webpEffort || 5)),
-    qualityGuardrailSsim: settings.qualityGuardrailSsim
+    qualityGuardrailSsim: settings.qualityGuardrailSsim,
+    smartCompressionMode: settings.smartCompressionMode || runMode === 'smart',
+    smartTarget: settings.smartTarget ?? 'visually-lossless',
+    qualityGuardrail: settings.qualityGuardrail ?? 90,
+    optimizationSpeed: settings.optimizationSpeed ?? 'balanced',
+    responsiveSettings: settings.responsiveSettings || DEFAULT_RESPONSIVE_SETTINGS
   };
 }

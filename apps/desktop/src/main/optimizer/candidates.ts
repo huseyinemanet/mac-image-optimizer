@@ -45,7 +45,7 @@ export function shouldCreateWebp(mode: EffectiveSettings['runMode']): boolean {
 }
 
 export function shouldOptimizeOriginal(mode: EffectiveSettings['runMode']): boolean {
-  return mode === 'optimize' || mode === 'optimizeAndWebp';
+  return mode === 'optimize' || mode === 'optimizeAndWebp' || mode === 'smart';
 }
 
 export function isSupportedImageType(ext: string): ext is SupportedImageType {

@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
 import { Logger } from '../logger';
-import type { WorkerTask } from '../../shared/types';
+import type { OptimiseSettings, ResponsiveResult, WorkerTask } from '../../shared/types';
 import {
   getJpegQualities,
   getOutputFormatForPath,
@@ -23,6 +23,9 @@ import { ensureBackup, outputPathForOriginal, outputPathForWebp, tempFilePath, t
 import { resolveOutputPathFromTemplate } from './io/filenameTemplate';
 import { applyExportPreset } from './exportPreset';
 import { toEffectiveSettings, type ActionDecision, type CandidateResult, type EffectiveSettings, type PipelineFileResult } from './types';
+import { analyzeImage, type ImageFeatures } from './analysis';
+import { findOptimalQuality } from './smartSearch';
+import { buildDerivativePlan, generateHtmlSnippet, generateManifest, renderDerivative } from './responsive';
 
 const log = new Logger('Pipeline');
 
@@ -96,7 +99,28 @@ async function pickBest(candidates: CandidateResult[]): Promise<CandidateResult 
   return [...candidates].sort((a, b) => a.bytes - b.bytes)[0];
 }
 
-async function buildJpegCandidates(inputPath: string, originalBuffer: Buffer, settings: EffectiveSettings): Promise<CandidateResult[]> {
+async function buildJpegCandidates(
+  inputPath: string,
+  originalBuffer: Buffer,
+  features: ImageFeatures,
+  settings: EffectiveSettings
+): Promise<CandidateResult[]> {
+  if (settings.smartCompressionMode) {
+    const result = await findOptimalQuality(inputPath, originalBuffer, features, settings, 'jpeg');
+    if (result) {
+      return [
+        {
+          buffer: result.buffer,
+          bytes: result.buffer.length,
+          qualityLabel: `smart-q${result.quality}`,
+          format: 'jpeg',
+          ssim: result.metrics.mssim
+        }
+      ];
+    }
+    return [];
+  }
+
   const threshold = getSsimThreshold(settings);
   const candidates: CandidateResult[] = [];
 
@@ -188,7 +212,28 @@ async function buildPngCandidates(inputPath: string, originalBuffer: Buffer, set
   return candidates;
 }
 
-async function buildWebpCandidates(inputPath: string, originalBuffer: Buffer, settings: EffectiveSettings): Promise<CandidateResult[]> {
+async function buildWebpCandidates(
+  inputPath: string,
+  originalBuffer: Buffer,
+  features: ImageFeatures,
+  settings: EffectiveSettings
+): Promise<CandidateResult[]> {
+  if (settings.smartCompressionMode) {
+    const result = await findOptimalQuality(inputPath, originalBuffer, features, settings, 'webp');
+    if (result) {
+      return [
+        {
+          buffer: result.buffer,
+          bytes: result.buffer.length,
+          qualityLabel: `smart-q${result.quality}`,
+          format: 'webp',
+          ssim: result.metrics.mssim
+        }
+      ];
+    }
+    return [];
+  }
+
   const threshold = getSsimThreshold(settings);
   const candidates: CandidateResult[] = [];
 
@@ -238,6 +283,7 @@ function skipDecision(originalBytes: number, reason: string): ActionDecision {
 async function runOptimizeAction(
   inputPath: string,
   originalBuffer: Buffer,
+  features: ImageFeatures,
   settings: EffectiveSettings,
   commonRoot: string,
   backupDir: string | undefined,
@@ -253,11 +299,11 @@ async function runOptimizeAction(
   try {
     candidates =
       type === 'jpeg'
-        ? await buildJpegCandidates(inputPath, originalBuffer, settings)
+        ? await buildJpegCandidates(inputPath, originalBuffer, features, settings)
         : type === 'png'
           ? await buildPngCandidates(inputPath, originalBuffer, settings)
           : settings.reencodeExistingWebp
-            ? await buildWebpCandidates(inputPath, originalBuffer, settings)
+            ? await buildWebpCandidates(inputPath, originalBuffer, features, settings)
             : [];
   } catch (error) {
     return skipDecision(originalBuffer.length, error instanceof Error ? error.message : String(error));
@@ -319,6 +365,7 @@ async function runOptimizeAction(
 async function runWebpAction(
   inputPath: string,
   originalBuffer: Buffer,
+  features: ImageFeatures,
   settings: EffectiveSettings,
   commonRoot: string,
   backupDir: string | undefined,
@@ -336,7 +383,7 @@ async function runWebpAction(
 
   let candidates: CandidateResult[] = [];
   try {
-    candidates = await buildWebpCandidates(inputPath, originalBuffer, settings);
+    candidates = await buildWebpCandidates(inputPath, originalBuffer, features, settings);
   } catch (error) {
     return skipDecision(originalBuffer.length, error instanceof Error ? error.message : String(error));
   }
@@ -399,10 +446,45 @@ async function runWebpAction(
   };
 }
 
+async function runResponsiveAction(
+  inputPath: string,
+  features: ImageFeatures,
+  settings: EffectiveSettings,
+  commonRoot: string,
+): Promise<ResponsiveResult> {
+  const config = settings.responsiveSettings;
+  const plans = await buildDerivativePlan(inputPath, config, features.width);
+
+  const outputFolder = path.join(path.dirname(inputPath), 'Responsive', path.basename(inputPath, path.extname(inputPath)));
+  await fs.mkdir(outputFolder, { recursive: true });
+
+  const derivatives = [];
+  for (const plan of plans) {
+    const deriv = await renderDerivative(inputPath, plan, settings as unknown as OptimiseSettings, outputFolder);
+    derivatives.push(deriv);
+  }
+
+  const { img, picture } = generateHtmlSnippet(inputPath, derivatives, config, features.width, features.height);
+  const manifest = generateManifest(inputPath, derivatives, features.width, features.height);
+
+  return {
+    status: 'success',
+    inputPath,
+    originalWidth: features.width,
+    originalHeight: features.height,
+    derivatives,
+    htmlImg: img,
+    htmlPicture: picture,
+    manifest
+  };
+}
+
 export async function processFile(task: WorkerTask): Promise<PipelineFileResult> {
   log.info(`Processing file: ${task.inputPath} (Mode: ${task.mode})`);
   const settings = toEffectiveSettings(task.settings, task.mode);
   const originalBuffer = await fs.readFile(task.inputPath);
+
+  const features = await analyzeImage(originalBuffer);
 
   const backups: BackupRecord[] = [];
   const backupCache = new Map<string, string>();
@@ -414,6 +496,7 @@ export async function processFile(task: WorkerTask): Promise<PipelineFileResult>
     actions.optimised = await runOptimizeAction(
       task.inputPath,
       originalBuffer,
+      features,
       settings,
       commonRoot,
       task.backupDir,
@@ -426,11 +509,21 @@ export async function processFile(task: WorkerTask): Promise<PipelineFileResult>
     actions.webp = await runWebpAction(
       task.inputPath,
       originalBuffer,
+      features,
       settings,
       commonRoot,
       task.backupDir,
       backupCache,
       backups
+    );
+  }
+
+  if (task.mode === 'responsive') {
+    actions.responsive = await runResponsiveAction(
+      task.inputPath,
+      features,
+      settings,
+      commonRoot
     );
   }
 

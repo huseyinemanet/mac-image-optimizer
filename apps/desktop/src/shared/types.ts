@@ -1,7 +1,7 @@
 export type SupportedImageType = 'jpeg' | 'png' | 'webp';
 
 export type OutputMode = 'replace' | 'subfolder';
-export type RunMode = 'optimize' | 'convertWebp' | 'optimizeAndWebp';
+export type RunMode = 'optimize' | 'convertWebp' | 'optimizeAndWebp' | 'smart' | 'responsive';
 export type ExportPreset = 'original' | 'web' | 'design';
 
 export type FileStatus =
@@ -33,7 +33,39 @@ export interface OptimiseSettings {
   confirmDangerousWebpReplace: boolean;
   deleteOriginalAfterWebp: boolean;
   qualityGuardrailSsim: boolean;
+  smartCompressionMode: boolean;
+  smartTarget: 'visually-lossless' | 'high' | 'balanced' | 'small' | 'custom';
+  qualityGuardrail: number;
+  optimizationSpeed: 'fast' | 'balanced' | 'thorough';
+  responsiveSettings: ResponsiveSettings;
 }
+
+export type ResponsiveMode = 'width' | 'dpr';
+export type ResponsiveFormatPolicy = 'keep' | 'webp-fallback' | 'webp-only';
+
+export interface ResponsiveSettings {
+  mode: ResponsiveMode;
+  widths: number[];
+  dprBaseWidth: number;
+  formatPolicy: ResponsiveFormatPolicy;
+  allowUpscale: boolean;
+  includeOriginal: boolean;
+  optimizationPreset: ExportPreset;
+  sizesTemplate: string;
+  customSizes: string;
+}
+
+export const DEFAULT_RESPONSIVE_SETTINGS: ResponsiveSettings = {
+  mode: 'width',
+  widths: [320, 480, 640, 768, 1024, 1280, 1536, 1920, 2560],
+  dprBaseWidth: 400,
+  formatPolicy: 'webp-fallback',
+  allowUpscale: false,
+  includeOriginal: false,
+  optimizationPreset: 'web',
+  sizesTemplate: 'default',
+  customSizes: '(max-width: 768px) 100vw, 768px',
+};
 
 export const DEFAULT_SETTINGS: OptimiseSettings = {
   outputMode: 'subfolder',
@@ -56,6 +88,11 @@ export const DEFAULT_SETTINGS: OptimiseSettings = {
   confirmDangerousWebpReplace: false,
   deleteOriginalAfterWebp: false,
   qualityGuardrailSsim: false,
+  smartCompressionMode: false,
+  smartTarget: 'visually-lossless',
+  qualityGuardrail: 90,
+  optimizationSpeed: 'balanced',
+  responsiveSettings: DEFAULT_RESPONSIVE_SETTINGS,
 };
 
 export interface StartRunPayload {
@@ -119,6 +156,32 @@ export interface StartRunResult {
   runId: string;
 }
 
+export type WatchTriggerBehavior = 'new' | 'modified';
+
+export interface WatchFolderSettings {
+  triggerBehavior: WatchTriggerBehavior;
+  stabilityWaitMs: number;
+  maxFileSizeMb: number;
+  watchEnabled: boolean;
+  runMode: RunMode;
+  optimiseSettings: OptimiseSettings;
+}
+
+export const DEFAULT_WATCH_SETTINGS: WatchFolderSettings = {
+  triggerBehavior: 'new',
+  stabilityWaitMs: 2000,
+  maxFileSizeMb: 100,
+  watchEnabled: true,
+  runMode: 'optimize',
+  optimiseSettings: DEFAULT_SETTINGS,
+};
+
+export interface WatchFolderStatus {
+  path: string;
+  enabled: boolean;
+  folderSettings?: WatchFolderSettings;
+}
+
 export interface WatchFileDetectedEvent {
   folder: string;
   path: string;
@@ -145,6 +208,26 @@ export interface ClipboardErrorEvent {
   message: string;
 }
 
+export interface ResponsiveDerivative {
+  width: number | null;
+  dpr: number | null;
+  format: SupportedImageType;
+  outputPath: string;
+  size: number;
+}
+
+export interface ResponsiveResult {
+  status: 'success';
+  inputPath: string;
+  originalWidth: number;
+  originalHeight: number;
+  derivatives: ResponsiveDerivative[];
+  htmlImg: string;
+  htmlPicture: string;
+  manifest: any;
+  reason?: string;
+}
+
 export interface ActionResult {
   status: 'success' | 'skipped' | 'failed';
   reason?: string;
@@ -158,6 +241,14 @@ export interface BackupRecord {
   originalPath: string;
   backupPath: string;
   removeOnRestore?: string;
+}
+
+export interface PreviewResult {
+  buffer: Buffer;
+  originalBuffer?: Buffer;
+  size: number;
+  quality: number;
+  ssim: number;
 }
 
 export interface WorkerTask {
@@ -176,9 +267,10 @@ export type WorkerResponse =
     actions: {
       optimised?: ActionResult;
       webp?: ActionResult;
+      responsive?: ResponsiveResult;
     };
     backups: BackupRecord[];
-    status: 'success' | 'skipped';
+    status: 'success' | 'skipped' | 'failed';
     message?: string;
   }
   | {
@@ -199,11 +291,18 @@ declare global {
       restoreLastRun: () => Promise<{ restoredCount: number; failedCount: number; message: string }>;
       canRestoreLastRun: () => Promise<boolean>;
       onProgress: (cb: (event: RunProgressEvent) => void) => () => void;
-      addWatchFolder: (path: string) => Promise<string[]>;
-      removeWatchFolder: (path: string) => Promise<string[]>;
-      listWatchFolders: () => Promise<string[]>;
+
+      // Folder Watch API
+      addWatchFolder: (path: string) => Promise<WatchFolderStatus[]>;
+      removeWatchFolder: (path: string) => Promise<WatchFolderStatus[]>;
+      listWatchFolders: () => Promise<WatchFolderStatus[]>;
+      updateWatchFolderSettings: (path: string, settings: WatchFolderSettings) => Promise<WatchFolderStatus[]>;
+      toggleWatchFolder: (path: string, enabled: boolean) => Promise<WatchFolderStatus[]>;
+      getGlobalWatchSettings: () => Promise<WatchFolderSettings>;
+      updateGlobalWatchSettings: (settings: WatchFolderSettings) => Promise<void>;
       onWatchFileDetected: (cb: (event: WatchFileDetectedEvent) => void) => () => void;
       onWatchFileOptimized: (cb: (event: WatchFileOptimizedEvent) => void) => () => void;
+
       setClipboardAutoOptimize: (payload: { enabled: boolean; settings: OptimiseSettings }) => Promise<void>;
       onClipboardOptimized: (cb: (event: ClipboardOptimizedEvent) => void) => () => void;
       onClipboardError: (cb: (event: ClipboardErrorEvent) => void) => () => void;
